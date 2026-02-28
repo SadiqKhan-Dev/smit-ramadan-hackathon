@@ -8,7 +8,6 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
-import { initializeDatabase } from '../lib/neon';
 
 const AuthContext = createContext(null);
 
@@ -25,10 +24,6 @@ export function AuthProvider({ children }) {
   // Stores the role chosen during signup so onAuthStateChanged can use it
   // as a fallback when Firestore hasn't written the doc yet (race condition)
   const pendingRoleRef = useRef(null);
-
-  useEffect(() => {
-    initializeDatabase();
-  }, []);
 
   /**
    * Signup with email/password
