@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -22,9 +22,10 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  /**
-   * Initialize Neon DB tables on first load
-   */
+  // Stores the role chosen during signup so onAuthStateChanged can use it
+  // as a fallback when Firestore hasn't written the doc yet (race condition)
+  const pendingRoleRef = useRef(null);
+
   useEffect(() => {
     initializeDatabase();
   }, []);
@@ -36,6 +37,9 @@ export function AuthProvider({ children }) {
   async function signup({ email, password, name, role, specialty, phone }) {
     try {
       setError(null);
+
+      // Store role BEFORE creating user so onAuthStateChanged can use it
+      pendingRoleRef.current = role;
 
       // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -55,11 +59,12 @@ export function AuthProvider({ children }) {
         status: 'active',
       });
 
-      // Set role immediately so DashboardRouter doesn't redirect to /login
       setUserRole(role);
+      pendingRoleRef.current = null;
 
       return { success: true };
     } catch (error) {
+      pendingRoleRef.current = null;
       console.error('Signup error:', error.code, error.message);
       const errorMessage = getErrorMessage(error.code, error.message);
       setError(errorMessage);
@@ -126,14 +131,24 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
-      
+
       if (user) {
-        const role = await getUserRole(user.uid);
-        setUserRole(role);
+        let role = await getUserRole(user.uid);
+
+        // Race condition: onAuthStateChanged fires before setDoc completes on
+        // new signup. Retry once after a short delay, then fall back to the
+        // role stored in pendingRoleRef before createUserWithEmailAndPassword.
+        if (!role) {
+          await new Promise(r => setTimeout(r, 800));
+          role = await getUserRole(user.uid);
+        }
+
+        setUserRole(role || pendingRoleRef.current);
+        if (role) pendingRoleRef.current = null;
       } else {
         setUserRole(null);
       }
-      
+
       setLoading(false);
     });
 
