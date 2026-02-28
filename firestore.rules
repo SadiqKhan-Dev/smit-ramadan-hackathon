@@ -1,0 +1,187 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get user role
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && getUserRole() == 'admin';
+    }
+    
+    // Helper function to check if user is doctor
+    function isDoctor() {
+      return isAuthenticated() && getUserRole() == 'doctor';
+    }
+    
+    // Helper function to check if user is receptionist
+    function isReceptionist() {
+      return isAuthenticated() && getUserRole() == 'receptionist';
+    }
+    
+    // Helper function to check if user is patient
+    function isPatient() {
+      return isAuthenticated() && getUserRole() == 'patient';
+    }
+    
+    // =====================
+    // USERS COLLECTION
+    // =====================
+    match /users/{userId} {
+      // Users can read their own data
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Admin can read all users
+      allow read: if isAdmin();
+      
+      // Receptionist can read doctors and patients
+      allow read: if isReceptionist();
+      
+      // Users can update their own data (limited fields)
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Admin can create, update, delete any user
+      allow create, update, delete: if isAdmin();
+      
+      // Receptionist can create patients
+      allow create: if isReceptionist() && request.resource.data.role == 'patient';
+    }
+    
+    // =====================
+    // PATIENTS COLLECTION
+    // =====================
+    match /patients/{patientId} {
+      // Patient can read their own data
+      allow read: if isAuthenticated() && request.auth.uid == patientId;
+      
+      // Admin can read all patients
+      allow read: if isAdmin();
+      
+      // Doctor can read their assigned patients
+      allow read: if isDoctor() && request.auth.uid == resource.data.doctorId;
+      
+      // Receptionist can read all patients
+      allow read: if isReceptionist();
+      
+      // Admin can create, update, delete patients
+      allow create, update, delete: if isAdmin();
+      
+      // Receptionist can create patients
+      allow create: if isReceptionist();
+      
+      // Doctor can update their patients' medical info
+      allow update: if isDoctor() && request.auth.uid == resource.data.doctorId;
+    }
+    
+    // =====================
+    // APPOINTMENTS COLLECTION
+    // =====================
+    match /appointments/{appointmentId} {
+      // Patient can read their own appointments
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.patientId;
+      
+      // Admin can read all appointments
+      allow read: if isAdmin();
+      
+      // Doctor can read their appointments
+      allow read: if isDoctor() && request.auth.uid == resource.data.doctorId;
+      
+      // Receptionist can read all appointments
+      allow read: if isReceptionist();
+      
+      // Admin can create, update, delete appointments
+      allow create, update, delete: if isAdmin();
+      
+      // Receptionist can create and update appointments
+      allow create, update: if isReceptionist();
+      
+      // Doctor can update their appointments (status, notes)
+      allow update: if isDoctor() && request.auth.uid == resource.data.doctorId;
+      
+      // Patient can create their own appointments
+      allow create: if isPatient() && request.auth.uid == request.resource.data.patientId;
+    }
+    
+    // =====================
+    // PRESCRIPTIONS COLLECTION
+    // =====================
+    match /prescriptions/{prescriptionId} {
+      // Patient can read their own prescriptions
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.patientId;
+      
+      // Admin can read all prescriptions
+      allow read: if isAdmin();
+      
+      // Doctor can read prescriptions they created
+      allow read: if isDoctor() && request.auth.uid == resource.data.doctorId;
+      
+      // Doctor can create prescriptions for their patients
+      allow create: if isDoctor();
+      
+      // Admin can create, update, delete prescriptions
+      allow create, update, delete: if isAdmin();
+      
+      // Doctor can update their own prescriptions
+      allow update: if isDoctor() && request.auth.uid == resource.data.doctorId;
+    }
+    
+    // =====================
+    // MEDICAL RECORDS COLLECTION
+    // =====================
+    match /medicalRecords/{recordId} {
+      // Patient can read their own records
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.patientId;
+      
+      // Admin can read all records
+      allow read: if isAdmin();
+      
+      // Doctor can read records of their patients
+      allow read: if isDoctor() && request.auth.uid == resource.data.doctorId;
+      
+      // Doctor can create records for their patients
+      allow create: if isDoctor();
+      
+      // Admin can create, update, delete records
+      allow create, update, delete: if isAdmin();
+      
+      // Doctor can update records they created
+      allow update: if isDoctor() && request.auth.uid == resource.data.doctorId;
+    }
+    
+    // =====================
+    // DEPARTMENTS COLLECTION
+    // =====================
+    match /departments/{departmentId} {
+      // All authenticated users can read departments
+      allow read: if isAuthenticated();
+      
+      // Admin can manage departments
+      allow create, update, delete: if isAdmin();
+    }
+    
+    // =====================
+    // NOTIFICATIONS COLLECTION
+    // =====================
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      
+      // Admin can read all notifications
+      allow read: if isAdmin();
+      
+      // System can create notifications
+      allow create: if isAuthenticated();
+      
+      // Users can update their own notifications (mark as read)
+      allow update: if isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+  }
+}

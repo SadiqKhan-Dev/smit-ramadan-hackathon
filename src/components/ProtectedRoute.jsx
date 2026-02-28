@@ -1,0 +1,82 @@
+import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { PageLoader } from '../components/ui/components';
+
+/**
+ * ProtectedRoute Component
+ * Protects routes that require authentication
+ */
+export function ProtectedRoute({ children }) {
+  const { currentUser, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <PageLoader text="Loading..." />;
+  }
+
+  if (!currentUser) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+}
+
+/**
+ * RoleBasedRoute Component
+ * Protects routes based on user role
+ */
+export function RoleBasedRoute({ children, allowedRoles }) {
+  const { currentUser, userRole, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <PageLoader text="Loading..." />;
+  }
+
+  if (!currentUser) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (!allowedRoles.includes(userRole)) {
+    // Redirect to appropriate dashboard based on role
+    const roleDashboards = {
+      admin: '/admin/dashboard',
+      doctor: '/doctor/dashboard',
+      receptionist: '/receptionist/dashboard',
+      patient: '/patient/dashboard',
+    };
+    
+    return <Navigate to={roleDashboards[userRole] || '/'} replace />;
+  }
+
+  return children;
+}
+
+/**
+ * PublicRoute Component
+ * Redirects authenticated users away from public pages
+ */
+export function PublicRoute({ children }) {
+  const { currentUser, loading } = useAuth();
+
+  if (loading) {
+    return <PageLoader text="Loading..." />;
+  }
+
+  if (currentUser) {
+    // Redirect to appropriate dashboard
+    const roleDashboards = {
+      admin: '/admin/dashboard',
+      doctor: '/doctor/dashboard',
+      receptionist: '/receptionist/dashboard',
+      patient: '/patient/dashboard',
+    };
+    
+    return <Navigate to={roleDashboards[currentUser.role] || '/'} replace />;
+  }
+
+  return children;
+}
+
+export default ProtectedRoute;
