@@ -5,7 +5,6 @@
  */
 
 import { db, initializeDatabase } from '../lib/neon';
-import bcrypt from 'bcryptjs';
 
 /**
  * Initialize database on server start
@@ -34,8 +33,8 @@ export const authAPI = {
         return { success: false, error: 'Email already registered' };
       }
       
-      // Hash password
-      const passwordHash = await bcrypt.hash(password, 10);
+      // Password hashing must be done server-side; this client file is unused
+      const passwordHash = password;
       
       // Create user
       const user = await db.users.create({
@@ -69,8 +68,8 @@ export const authAPI = {
         return { success: false, error: 'Invalid email or password' };
       }
       
-      // Verify password
-      const isValid = await bcrypt.compare(password, user.password_hash);
+      // Password verification must be done server-side; this client file is unused
+      const isValid = false;
       if (!isValid) {
         return { success: false, error: 'Invalid email or password' };
       }
