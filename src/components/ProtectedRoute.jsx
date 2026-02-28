@@ -58,22 +58,21 @@ export function RoleBasedRoute({ children, allowedRoles }) {
  * Redirects authenticated users away from public pages
  */
 export function PublicRoute({ children }) {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, userRole, loading } = useAuth();
 
   if (loading) {
     return <PageLoader text="Loading..." />;
   }
 
   if (currentUser) {
-    // Redirect to appropriate dashboard
     const roleDashboards = {
       admin: '/admin/dashboard',
       doctor: '/doctor/dashboard',
       receptionist: '/receptionist/dashboard',
       patient: '/patient/dashboard',
     };
-    
-    return <Navigate to={roleDashboards[currentUser.role] || '/'} replace />;
+
+    return <Navigate to={roleDashboards[userRole] || '/dashboard'} replace />;
   }
 
   return children;

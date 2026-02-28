@@ -12,7 +12,7 @@ export function DashboardRouter() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && currentUser) {
+    if (!loading && currentUser && userRole) {
       const roleRoutes = {
         admin: '/admin/dashboard',
         doctor: '/doctor/dashboard',
@@ -23,8 +23,6 @@ export function DashboardRouter() {
       const route = roleRoutes[userRole];
       if (route) {
         navigate(route);
-      } else {
-        navigate('/login');
       }
     }
   }, [currentUser, userRole, loading, navigate]);

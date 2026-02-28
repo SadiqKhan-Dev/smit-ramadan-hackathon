@@ -55,6 +55,9 @@ export function AuthProvider({ children }) {
         status: 'active',
       });
 
+      // Set role immediately so DashboardRouter doesn't redirect to /login
+      setUserRole(role);
+
       return { success: true };
     } catch (error) {
       console.error('Signup error:', error.code, error.message);
