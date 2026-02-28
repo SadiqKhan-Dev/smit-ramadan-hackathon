@@ -1,15 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
   onAuthStateChanged,
-  updateProfile 
+  updateProfile
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
-import { db as neonDB, initializeDatabase } from '../lib/neon';
-import bcrypt from 'bcryptjs';
+import { initializeDatabase } from '../lib/neon';
 
 const AuthContext = createContext(null);
 
@@ -32,33 +31,19 @@ export function AuthProvider({ children }) {
 
   /**
    * Signup with email/password
-   * Creates user in Firebase Auth AND Neon DB
+   * Creates user in Firebase Auth AND Firestore
    */
   async function signup({ email, password, name, role, specialty, phone }) {
     try {
       setError(null);
-      
+
       // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
+
       // Update Firebase profile with display name
       await updateProfile(userCredential.user, { displayName: name });
-      
-      // Hash password for Neon DB storage
-      const passwordHash = await bcrypt.hash(password, 10);
-      
-      // Store user data in Neon DB
-      await neonDB.users.create({
-        name,
-        email,
-        passwordHash,
-        role,
-        specialty: role === 'doctor' ? specialty : null,
-        phone,
-        status: 'active'
-      });
-      
-      // Also store in Firestore for backward compatibility
+
+      // Store user data in Firestore
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         uid: userCredential.user.uid,
         name,
@@ -81,49 +66,21 @@ export function AuthProvider({ children }) {
 
   /**
    * Login with email/password
-   * Authenticates via Firebase, fetches role from Neon DB
+   * Authenticates via Firebase Auth
    */
   async function login(email, password) {
     try {
       setError(null);
-      
+
       // Sign in with Firebase
       await signInWithEmailAndPassword(auth, email, password);
-      
+
       return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      
-      // If Firebase fails, try Neon DB authentication
-      try {
-        const user = await neonDB.users.findByEmail(email);
-        
-        if (!user) {
-          const msg = 'Invalid email or password';
-          setError(msg);
-          return { success: false, error: msg };
-        }
-        
-        const isValid = await bcrypt.compare(password, user.password_hash);
-        
-        if (!isValid) {
-          const msg = 'Invalid email or password';
-          setError(msg);
-          return { success: false, error: msg };
-        }
-        
-        // Create Firebase session for Neon DB user
-        // Note: This requires creating a Firebase user first or using custom tokens
-        const msg = 'Please sign up first or use Firebase authentication';
-        setError(msg);
-        return { success: false, error: msg };
-        
-      } catch (neonError) {
-        console.error('Neon DB login error:', neonError);
-        const errorMessage = getErrorMessage(error.code);
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
-      }
+      const errorMessage = getErrorMessage(error.code);
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
     }
   }
 
