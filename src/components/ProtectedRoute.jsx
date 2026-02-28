@@ -30,7 +30,8 @@ export function RoleBasedRoute({ children, allowedRoles }) {
   const { currentUser, userRole, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) {
+  // Show loader while auth is initializing OR while role is still being fetched
+  if (loading || (currentUser && !userRole)) {
     return <PageLoader text="Loading..." />;
   }
 
@@ -39,15 +40,13 @@ export function RoleBasedRoute({ children, allowedRoles }) {
   }
 
   if (!allowedRoles.includes(userRole)) {
-    // Redirect to appropriate dashboard based on role
     const roleDashboards = {
       admin: '/admin/dashboard',
       doctor: '/doctor/dashboard',
       receptionist: '/receptionist/dashboard',
       patient: '/patient/dashboard',
     };
-    
-    return <Navigate to={roleDashboards[userRole] || '/'} replace />;
+    return <Navigate to={roleDashboards[userRole] || '/dashboard'} replace />;
   }
 
   return children;
