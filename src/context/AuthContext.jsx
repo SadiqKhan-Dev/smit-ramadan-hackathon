@@ -57,8 +57,8 @@ export function AuthProvider({ children }) {
 
       return { success: true };
     } catch (error) {
-      console.error('Signup error:', error);
-      const errorMessage = getErrorMessage(error.code);
+      console.error('Signup error:', error.code, error.message);
+      const errorMessage = getErrorMessage(error.code, error.message);
       setError(errorMessage);
       return { success: false, error: errorMessage };
     }
@@ -77,8 +77,8 @@ export function AuthProvider({ children }) {
 
       return { success: true };
     } catch (error) {
-      console.error('Login error:', error);
-      const errorMessage = getErrorMessage(error.code);
+      console.error('Login error:', error.code, error.message);
+      const errorMessage = getErrorMessage(error.code, error.message);
       setError(errorMessage);
       return { success: false, error: errorMessage };
     }
@@ -169,11 +169,11 @@ export function useAuth() {
 /**
  * Get human-readable error messages
  */
-function getErrorMessage(code) {
+function getErrorMessage(code, fallback) {
   const messages = {
     'auth/email-already-in-use': 'This email is already registered',
     'auth/invalid-email': 'Invalid email address',
-    'auth/operation-not-allowed': 'Email/password accounts are not enabled',
+    'auth/operation-not-allowed': 'Email/password sign-in is not enabled. Enable it in Firebase Console → Authentication → Sign-in method.',
     'auth/weak-password': 'Password should be at least 6 characters',
     'auth/user-disabled': 'This account has been disabled',
     'auth/user-not-found': 'No account found with this email',
@@ -181,9 +181,13 @@ function getErrorMessage(code) {
     'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
     'auth/network-request-failed': 'Network error. Please check your connection.',
     'auth/invalid-credential': 'Invalid email or password',
+    'auth/invalid-api-key': 'Firebase API key is missing or invalid. Check your environment variables.',
+    'auth/app-not-authorized': 'This app is not authorized to use Firebase Authentication.',
+    'auth/configuration-not-found': 'Firebase configuration not found. Check your environment variables.',
+    'auth/internal-error': 'Firebase internal error. Check browser console for details.',
   };
-  
-  return messages[code] || 'An error occurred. Please try again.';
+
+  return messages[code] || fallback || 'An error occurred. Please try again.';
 }
 
 export default AuthContext;
