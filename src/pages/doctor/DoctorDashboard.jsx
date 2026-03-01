@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
+import { MOCK_MY_PATIENTS, MOCK_MY_APPOINTMENTS } from '../../data/mockData';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -36,7 +37,6 @@ export function DoctorDashboardPage() {
   const navigate = useNavigate();
   const doctorId = currentUser?.uid;
 
-  // Fetch only this doctor's data from Firestore
   useEffect(() => {
     if (doctorId) {
       fetchDoctorData();
@@ -59,15 +59,19 @@ export function DoctorDashboardPage() {
       const appointmentsSnap = await getDocs(appointmentsQuery);
       const appointmentsData = appointmentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+      // Use mock data as fallback when Firestore is empty
+      const finalPatients = patientsData.length > 0 ? patientsData : MOCK_MY_PATIENTS;
+      const finalAppointments = appointmentsData.length > 0 ? appointmentsData : MOCK_MY_APPOINTMENTS;
+
       // Filter today's appointments
       const today = new Date().toISOString().split('T')[0];
-      const todayAppointments = appointmentsData.filter(apt => apt.date === today);
+      const todayAppointments = finalAppointments.filter(apt => apt.date === today);
 
-      setMyPatients(patientsData);
-      setMyAppointments(appointmentsData);
+      setMyPatients(finalPatients);
+      setMyAppointments(finalAppointments);
 
       setStats({
-        totalPatients: patientsData.length,
+        totalPatients: finalPatients.length,
         todayAppointments: todayAppointments.length,
         completedToday: todayAppointments.filter(a => a.status === 'completed').length,
         pendingToday: todayAppointments.filter(a => a.status === 'pending').length,
@@ -104,6 +108,7 @@ export function DoctorDashboardPage() {
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
         userRole="doctor"
+        onLogout={handleLogout}
       />
 
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>

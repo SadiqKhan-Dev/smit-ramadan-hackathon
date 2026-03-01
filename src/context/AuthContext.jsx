@@ -50,8 +50,8 @@ export function AuthProvider({ children }) {
       await updateProfile(user, { displayName: name });
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid, name, email, role,
-        specialty: role === 'doctor' ? specialty : null,
-        phone,
+        specialty: role === 'doctor' ? (specialty || null) : null,
+        phone: phone || null,
         createdAt: new Date().toISOString(),
         status: 'active',
       });
@@ -78,7 +78,7 @@ export function AuthProvider({ children }) {
       const role = await fetchRole(user.uid);
       if (role) setUserRole(role);
 
-      return { success: true };
+      return { success: true, role };
     } catch (err) {
       const msg = getErrorMessage(err.code, err.message);
       setError(msg);

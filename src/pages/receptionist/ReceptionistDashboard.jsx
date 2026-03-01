@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, query, where } from 'firebase/firestore';
+import { MOCK_PATIENTS_LIST, MOCK_DOCTORS, MOCK_ALL_APPOINTMENTS } from '../../data/mockData';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Users, Calendar, UserCog, Plus, Search, Phone, Mail
+import {
+  Users, Calendar, UserCog, Plus
 } from 'lucide-react';
 import { Sidebar } from '../../components/layout/Sidebar';
 import { Card, CardContent, StatCard } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input, Select } from '../../components/ui/Input';
-import { DataTable, StatusBadge, PageHeader, EmptyState } from '../../components/ui/components';
+import { DataTable, StatusBadge, PageHeader, EmptyState, ErrorAlert } from '../../components/ui/components';
 import { ModalForm } from '../../components/ui/ModalForm';
 
 /**
@@ -20,8 +21,10 @@ export function ReceptionistDashboard() {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showAddPatient, setShowAddPatient] = useState(false);
   const [showAddAppointment, setShowAddAppointment] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
 
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -37,44 +40,43 @@ export function ReceptionistDashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (currentUser?.uid) {
+      fetchData();
+    }
+  }, [currentUser]);
 
   async function fetchData() {
     try {
       setLoading(true);
-      
-      const patientsRef = collection(db, 'patients');
-      const doctorsRef = collection(db, 'users');
-      const appointmentsRef = collection(db, 'appointments');
-
-      const doctorsQuery = query(doctorsRef, where('role', '==', 'doctor'));
-      
       const [patientsSnap, doctorsSnap, appointmentsSnap] = await Promise.all([
-        getDocs(patientsRef),
-        getDocs(doctorsQuery),
-        getDocs(appointmentsRef),
+        getDocs(collection(db, 'patients')),
+        getDocs(query(collection(db, 'users'), where('role', '==', 'doctor'))),
+        getDocs(collection(db, 'appointments')),
       ]);
 
-      const patientsData = patientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const doctorsData = doctorsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const appointmentsData = appointmentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const patientsData = patientsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const doctorsData = doctorsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const appointmentsData = appointmentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Use mock data as fallback when Firestore is empty
+      const finalPatients = patientsData.length > 0 ? patientsData : MOCK_PATIENTS_LIST;
+      const finalDoctors = doctorsData.length > 0 ? doctorsData : MOCK_DOCTORS;
+      const finalAppointments = appointmentsData.length > 0 ? appointmentsData : MOCK_ALL_APPOINTMENTS;
 
       const today = new Date().toISOString().split('T')[0];
-      const todayAppointments = appointmentsData.filter(a => a.date === today);
 
-      setPatients(patientsData);
-      setDoctors(doctorsData);
-      setAppointments(appointmentsData);
-
+      setPatients(finalPatients);
+      setDoctors(finalDoctors);
+      setAppointments(finalAppointments);
       setStats({
-        totalPatients: patientsData.length,
-        todayBookings: todayAppointments.length,
-        doctorsAvailable: doctorsData.filter(d => d.status === 'active').length,
-        upcomingAppointments: appointmentsData.filter(a => a.date >= today).length,
+        totalPatients: finalPatients.length,
+        todayBookings: finalAppointments.filter(a => a.date === today).length,
+        doctorsAvailable: finalDoctors.filter(d => d.status === 'active').length,
+        upcomingAppointments: finalAppointments.filter(a => a.date >= today).length,
       });
     } catch (err) {
       console.error('Fetch error:', err);
+      setError('Data load karne mein error aya.');
     } finally {
       setLoading(false);
     }
@@ -85,6 +87,67 @@ export function ReceptionistDashboard() {
     navigate('/');
   };
 
+  // Add Patient
+  async function handleAddPatient(e) {
+    const formData = new FormData(e.target);
+    const name = formData.get('name');
+    if (!name) return;
+    setModalLoading(true);
+    try {
+      await addDoc(collection(db, 'patients'), {
+        name,
+        email: formData.get('email') || '',
+        phone: formData.get('phone') || '',
+        age: formData.get('age') || '',
+        gender: formData.get('gender') || '',
+        doctorId: formData.get('doctorId') || '',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      });
+      setShowAddPatient(false);
+      fetchData();
+    } catch (err) {
+      setError('Patient add karne mein error. Firestore rules check karein.');
+    } finally {
+      setModalLoading(false);
+    }
+  }
+
+  // Book Appointment
+  async function handleAddAppointment(e) {
+    const formData = new FormData(e.target);
+    const patientId = formData.get('patientId');
+    const doctorId = formData.get('doctorId');
+    const date = formData.get('date');
+    if (!patientId || !doctorId || !date) return;
+
+    const patient = patients.find(p => p.id === patientId);
+    const doctor = doctors.find(d => d.id === doctorId);
+
+    setModalLoading(true);
+    try {
+      await addDoc(collection(db, 'appointments'), {
+        patientId,
+        doctorId,
+        patientName: patient?.name || '',
+        doctorName: doctor?.name || '',
+        date,
+        time: formData.get('time') || '',
+        type: formData.get('type') || 'General',
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      });
+      setShowAddAppointment(false);
+      fetchData();
+    } catch (err) {
+      setError('Appointment book karne mein error. Firestore rules check karein.');
+    } finally {
+      setModalLoading(false);
+    }
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar
@@ -93,6 +156,7 @@ export function ReceptionistDashboard() {
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
         userRole="receptionist"
+        onLogout={handleLogout}
       />
 
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
@@ -105,6 +169,10 @@ export function ReceptionistDashboard() {
         </header>
 
         <main className="p-6 space-y-6">
+          {error && (
+            <ErrorAlert type="error" message={error} onDismiss={() => setError('')} />
+          )}
+
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard title="Total Patients" value={stats.totalPatients} change="Registered" trend="up" icon={Users} color="blue" />
@@ -114,12 +182,56 @@ export function ReceptionistDashboard() {
           </div>
 
           {/* Quick Actions */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <Button icon={Plus} onClick={() => setShowAddPatient(true)}>Add Patient</Button>
             <Button variant="secondary" icon={Plus} onClick={() => setShowAddAppointment(true)}>Book Appointment</Button>
           </div>
 
-          {/* Patients Table */}
+          {/* Today's Appointments */}
+          <Card>
+            <div className="p-6 border-b border-gray-100">
+              <PageHeader
+                title="Today's Appointments"
+                subtitle={`${appointments.filter(a => a.date === today).length} appointments today`}
+              />
+            </div>
+            <CardContent className="p-0">
+              {appointments.filter(a => a.date === today).length === 0 ? (
+                <EmptyState
+                  icon={Calendar}
+                  title="No appointments today"
+                  description="Book an appointment to get started"
+                  action={<Button icon={Plus} onClick={() => setShowAddAppointment(true)}>Book Appointment</Button>}
+                />
+              ) : (
+                <DataTable
+                  columns={[
+                    {
+                      key: 'patientName',
+                      header: 'Patient',
+                      render: (v, row) => (
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span className="text-blue-600 font-semibold text-sm">{row.patientName?.charAt(0)}</span>
+                          </div>
+                          <span className="font-medium text-gray-900">{row.patientName || '-'}</span>
+                        </div>
+                      )
+                    },
+                    { key: 'doctorName', header: 'Doctor', render: (v) => v || '-' },
+                    { key: 'time', header: 'Time', render: (v) => v || 'TBD' },
+                    { key: 'type', header: 'Type', render: (v) => v || 'General' },
+                    { key: 'status', header: 'Status', render: (v) => <StatusBadge variant={v === 'completed' ? 'success' : v === 'cancelled' ? 'danger' : 'default'} size="sm" dot>{v || 'pending'}</StatusBadge> },
+                  ]}
+                  data={appointments.filter(a => a.date === today)}
+                  searchable={false}
+                  sortable={false}
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* All Patients */}
           <Card>
             <div className="p-6 border-b border-gray-100">
               <PageHeader
@@ -132,14 +244,14 @@ export function ReceptionistDashboard() {
                 <EmptyState
                   icon={Users}
                   title="No patients yet"
-                  description="Add your first patient to get started"
+                  description="Add your first patient"
                   action={<Button icon={Plus} onClick={() => setShowAddPatient(true)}>Add Patient</Button>}
                 />
               ) : (
                 <DataTable
                   columns={[
-                    { 
-                      key: 'name', 
+                    {
+                      key: 'name',
                       header: 'Patient',
                       render: (value, row) => (
                         <div className="flex items-center gap-3">
@@ -155,6 +267,7 @@ export function ReceptionistDashboard() {
                     },
                     { key: 'age', header: 'Age', render: (v) => v || '-' },
                     { key: 'phone', header: 'Phone', render: (v) => <span className="text-sm">{v || '-'}</span> },
+                    { key: 'gender', header: 'Gender', render: (v) => v || '-' },
                     { key: 'status', header: 'Status', render: (v) => <StatusBadge variant={v === 'active' ? 'success' : 'default'} size="sm" dot>{v || 'active'}</StatusBadge> },
                   ]}
                   data={patients}
@@ -173,42 +286,55 @@ export function ReceptionistDashboard() {
         onClose={() => setShowAddPatient(false)}
         title="Add New Patient"
         submitLabel="Add Patient"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          const formData = new FormData(e.target);
-          await addDoc(collection(db, 'patients'), {
-            name: formData.get('name'),
-            email: formData.get('email'),
-            phone: formData.get('phone'),
-            age: formData.get('age'),
-            gender: formData.get('gender'),
-            doctorId: formData.get('doctorId'),
-            status: 'active',
-            createdAt: new Date().toISOString(),
-          });
-          fetchData();
-          setShowAddPatient(false);
-        }}
+        isLoading={modalLoading}
+        onSubmit={handleAddPatient}
       >
         <div className="space-y-4">
           <Input name="name" label="Full Name" placeholder="John Doe" required />
           <div className="grid grid-cols-2 gap-4">
             <Input name="email" type="email" label="Email" placeholder="john@example.com" />
-            <Input name="phone" label="Phone" placeholder="+1 (555) 000-0000" />
+            <Input name="phone" label="Phone" placeholder="+92 300 0000000" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input name="age" type="number" label="Age" placeholder="30" />
             <Select name="gender" label="Gender" options={[
-              { value: '', label: 'Select' },
               { value: 'Male', label: 'Male' },
               { value: 'Female', label: 'Female' },
               { value: 'Other', label: 'Other' },
-            ]} />
+            ]} placeholder="Select Gender" />
           </div>
-          <Select name="doctorId" label="Assign Doctor" options={[
-            { value: '', label: 'Select Doctor (Optional)' },
-            ...doctors.map(d => ({ value: d.id, label: d.name })),
-          ]} />
+          <Select name="doctorId" label="Assign Doctor" options={
+            doctors.map(d => ({ value: d.id, label: d.name + (d.specialty ? ` (${d.specialty})` : '') }))
+          } placeholder="Select Doctor (Optional)" />
+        </div>
+      </ModalForm>
+
+      {/* Book Appointment Modal */}
+      <ModalForm
+        isOpen={showAddAppointment}
+        onClose={() => setShowAddAppointment(false)}
+        title="Book Appointment"
+        submitLabel="Book Appointment"
+        isLoading={modalLoading}
+        onSubmit={handleAddAppointment}
+      >
+        <div className="space-y-4">
+          <Select name="patientId" label="Select Patient" required options={
+            patients.map(p => ({ value: p.id, label: p.name }))
+          } placeholder="Select Patient" />
+          <Select name="doctorId" label="Select Doctor" required options={
+            doctors.map(d => ({ value: d.id, label: d.name + (d.specialty ? ` - ${d.specialty}` : '') }))
+          } placeholder="Select Doctor" />
+          <div className="grid grid-cols-2 gap-4">
+            <Input name="date" type="date" label="Date" required />
+            <Input name="time" type="time" label="Time" />
+          </div>
+          <Select name="type" label="Appointment Type" options={[
+            { value: 'General', label: 'General Checkup' },
+            { value: 'Follow-up', label: 'Follow-up' },
+            { value: 'Emergency', label: 'Emergency' },
+            { value: 'Specialist', label: 'Specialist Consultation' },
+          ]} placeholder="Select Type" />
         </div>
       </ModalForm>
     </div>

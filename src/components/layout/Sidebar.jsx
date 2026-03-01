@@ -22,12 +22,13 @@ import {
  * Sidebar Component
  * Professional collapsible sidebar with role-based navigation
  */
-export function Sidebar({ 
-  currentPage, 
-  onNavigate, 
-  collapsed, 
+export function Sidebar({
+  currentPage,
+  onNavigate,
+  collapsed,
   setCollapsed,
   userRole = 'admin',
+  onLogout,
   logo = { icon: 'C', title: 'ClinicPro', subtitle: 'Management' },
   className = ''
 }) {
@@ -198,6 +199,7 @@ export function Sidebar({
       {/* Bottom Section - Logout */}
       <div className="absolute bottom-0 left-0 right-0 px-3 py-3 border-t border-slate-700/50 bg-slate-800/50">
         <button
+          onClick={onLogout}
           className={`
             w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
             text-slate-300 hover:bg-red-500/20 hover:text-red-400

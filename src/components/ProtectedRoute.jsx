@@ -63,7 +63,9 @@ export function PublicRoute({ children }) {
     return <PageLoader text="Loading..." />;
   }
 
-  if (currentUser) {
+  // Sirf redirect karo jab user logged in ho AND role bhi pata ho
+  // Agar role null ho to login page dikhao (taake re-login ho sake)
+  if (currentUser && userRole) {
     const roleDashboards = {
       admin: '/admin/dashboard',
       doctor: '/doctor/dashboard',
@@ -71,7 +73,7 @@ export function PublicRoute({ children }) {
       patient: '/patient/dashboard',
     };
 
-    return <Navigate to={roleDashboards[userRole] || '/dashboard'} replace />;
+    return <Navigate to={roleDashboards[userRole]} replace />;
   }
 
   return children;

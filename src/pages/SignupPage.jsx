@@ -62,7 +62,13 @@ export function SignupPage() {
     });
 
     if (result.success) {
-      navigate('/dashboard');
+      const roleRoutes = {
+        admin: '/admin/dashboard',
+        doctor: '/doctor/dashboard',
+        receptionist: '/receptionist/dashboard',
+        patient: '/patient/dashboard',
+      };
+      navigate(roleRoutes[formData.role] || '/dashboard');
     } else {
       setError(result.error);
     }

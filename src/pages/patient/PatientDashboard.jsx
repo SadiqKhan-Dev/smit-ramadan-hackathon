@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
+import { MOCK_PATIENT_APPOINTMENTS, MOCK_PRESCRIPTIONS } from '../../data/mockData';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Calendar, FileText, Clock, Activity, Pill, History
+import {
+  Calendar, FileText, Activity, Pill, History, CheckCircle
 } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -47,9 +48,13 @@ export function PatientDashboard() {
       const appointmentsData = appointmentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const prescriptionsData = prescriptionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      setAppointments(appointmentsData);
-      setPrescriptions(prescriptionsData);
-      setMedicalHistory(appointmentsData.filter(a => a.status === 'completed'));
+      // Use mock data as fallback when Firestore is empty
+      const finalAppointments = appointmentsData.length > 0 ? appointmentsData : MOCK_PATIENT_APPOINTMENTS;
+      const finalPrescriptions = prescriptionsData.length > 0 ? prescriptionsData : MOCK_PRESCRIPTIONS;
+
+      setAppointments(finalAppointments);
+      setPrescriptions(finalPrescriptions);
+      setMedicalHistory(finalAppointments.filter(a => a.status === 'completed'));
     } catch (err) {
       console.error('Fetch error:', err);
     } finally {
@@ -262,13 +267,5 @@ export function PatientDashboard() {
   );
 }
 
-function CheckCircle(props) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-      <polyline points="22 4 12 14.01 9 11.01"/>
-    </svg>
-  );
-}
 
 export default PatientDashboard;

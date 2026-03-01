@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { MOCK_ADMIN_DOCTORS, MOCK_ADMIN_RECEPTIONISTS, MOCK_ADMIN_PATIENTS } from '../../data/mockData';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Stethoscope, Users, UserCog, DollarSign, Calendar, 
-  Plus, Edit, Trash2, Search, Filter, CheckCircle, AlertCircle
+import {
+  Stethoscope, Users, UserCog, DollarSign, Calendar,
+  Plus, Edit, Trash2
 } from 'lucide-react';
 import { Sidebar } from '../../components/layout/Sidebar';
 import { Card, CardContent, StatCard } from '../../components/ui/Card';
@@ -16,14 +17,13 @@ import { ModalForm, ConfirmDialog } from '../../components/ui/ModalForm';
 
 /**
  * Admin Dashboard Component
- * Full administrative control over the clinic system
  */
 export function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // Data state
   const [doctors, setDoctors] = useState([]);
   const [receptionists, setReceptionists] = useState([]);
@@ -38,15 +38,13 @@ export function AdminDashboard() {
   // Modal states
   const [showDoctorModal, setShowDoctorModal] = useState(false);
   const [showReceptionistModal, setShowReceptionistModal] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [modalLoading, setModalLoading] = useState(false);
 
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch data from Firestore
   useEffect(() => {
     fetchData();
   }, []);
@@ -54,37 +52,35 @@ export function AdminDashboard() {
   async function fetchData() {
     try {
       setLoading(true);
-      
-      // Fetch users by role
       const usersRef = collection(db, 'users');
-      
-      const doctorsQuery = query(usersRef, where('role', '==', 'doctor'));
-      const receptionistsQuery = query(usersRef, where('role', '==', 'receptionist'));
-      const patientsQuery = query(usersRef, where('role', '==', 'patient'));
-      
+
       const [doctorsSnap, receptionistsSnap, patientsSnap] = await Promise.all([
-        getDocs(doctorsQuery),
-        getDocs(receptionistsQuery),
-        getDocs(patientsQuery),
+        getDocs(query(usersRef, where('role', '==', 'doctor'))),
+        getDocs(query(usersRef, where('role', '==', 'receptionist'))),
+        getDocs(query(usersRef, where('role', '==', 'patient'))),
       ]);
 
-      const doctorsData = doctorsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const receptionistsData = receptionistsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const patientsData = patientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const doctorsData = doctorsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const receptionistsData = receptionistsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const patientsData = patientsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      setDoctors(doctorsData);
-      setReceptionists(receptionistsData);
-      setPatients(patientsData);
+      // Use mock data as fallback when Firestore is empty
+      const finalDoctors = doctorsData.length > 0 ? doctorsData : MOCK_ADMIN_DOCTORS;
+      const finalReceptionists = receptionistsData.length > 0 ? receptionistsData : MOCK_ADMIN_RECEPTIONISTS;
+      const finalPatients = patientsData.length > 0 ? patientsData : MOCK_ADMIN_PATIENTS;
 
+      setDoctors(finalDoctors);
+      setReceptionists(finalReceptionists);
+      setPatients(finalPatients);
       setStats({
-        totalDoctors: doctorsData.length,
-        totalReceptionists: receptionistsData.length,
-        totalPatients: patientsData.length,
-        totalRevenue: patientsData.length * 150, // Dummy revenue calculation
+        totalDoctors: finalDoctors.length,
+        totalReceptionists: finalReceptionists.length,
+        totalPatients: finalPatients.length,
+        totalRevenue: finalPatients.length * 150,
       });
     } catch (err) {
       console.error('Fetch error:', err);
-      setError('Failed to load data. Please try again.');
+      setError('Failed to load data. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -95,16 +91,77 @@ export function AdminDashboard() {
     navigate('/');
   };
 
+  // Add Doctor handler
+  async function handleAddDoctor(e) {
+    const formData = new FormData(e.target);
+    const name = formData.get('name');
+    if (!name) return;
+    setModalLoading(true);
+    try {
+      await addDoc(collection(db, 'users'), {
+        name,
+        email: formData.get('email') || '',
+        specialty: formData.get('specialty') || '',
+        phone: formData.get('phone') || '',
+        role: 'doctor',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      });
+      setShowDoctorModal(false);
+      fetchData();
+    } catch (err) {
+      setError('Doctor add karne mein error aya. Firestore rules check karein.');
+    } finally {
+      setModalLoading(false);
+    }
+  }
+
+  // Add Receptionist handler
+  async function handleAddReceptionist(e) {
+    const formData = new FormData(e.target);
+    const name = formData.get('name');
+    if (!name) return;
+    setModalLoading(true);
+    try {
+      await addDoc(collection(db, 'users'), {
+        name,
+        email: formData.get('email') || '',
+        phone: formData.get('phone') || '',
+        role: 'receptionist',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      });
+      setShowReceptionistModal(false);
+      fetchData();
+    } catch (err) {
+      setError('Receptionist add karne mein error aya. Firestore rules check karein.');
+    } finally {
+      setModalLoading(false);
+    }
+  }
+
+  // Delete handler
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    try {
+      await deleteDoc(doc(db, 'users', deleteTarget.data.id));
+      setShowConfirmDialog(false);
+      setDeleteTarget(null);
+      fetchData();
+    } catch (err) {
+      setError(`Delete karne mein error aya. Firestore rules check karein.`);
+    }
+  }
+
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard':
-        return <DashboardOverview stats={stats} onNavigate={setActiveSection} />;
+        return <DashboardOverview stats={stats} loading={loading} onNavigate={setActiveSection} />;
       case 'doctors':
         return (
           <DoctorManagement
             doctors={doctors}
             onAdd={() => setShowDoctorModal(true)}
-            onEdit={setSelectedItem}
             onDelete={(doctor) => { setDeleteTarget({ type: 'doctor', data: doctor }); setShowConfirmDialog(true); }}
           />
         );
@@ -113,20 +170,13 @@ export function AdminDashboard() {
           <ReceptionistManagement
             receptionists={receptionists}
             onAdd={() => setShowReceptionistModal(true)}
-            onEdit={setSelectedItem}
             onDelete={(rec) => { setDeleteTarget({ type: 'receptionist', data: rec }); setShowConfirmDialog(true); }}
           />
         );
       case 'patients':
-        return (
-          <PatientManagement
-            patients={patients}
-            doctors={doctors}
-            onAssign={setSelectedItem}
-          />
-        );
+        return <PatientManagement patients={patients} />;
       default:
-        return <DashboardOverview stats={stats} onNavigate={setActiveSection} />;
+        return <DashboardOverview stats={stats} loading={loading} onNavigate={setActiveSection} />;
     }
   };
 
@@ -138,26 +188,26 @@ export function AdminDashboard() {
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
         userRole="admin"
+        onLogout={handleLogout}
       />
 
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
-        {/* Top Navbar */}
         <header className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between sticky top-0 z-30">
           <div>
             <h1 className="text-xl font-bold text-gray-900 capitalize">{activeSection}</h1>
             <p className="text-xs text-gray-500">Administrative Control Panel</p>
           </div>
-
           <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-600 hidden sm:block">{currentUser?.email}</span>
             <Button variant="ghost" size="sm" onClick={handleLogout}>Logout</Button>
           </div>
         </header>
 
         <main className="p-6">
           {error && (
-            <ErrorAlert 
-              type="error" 
-              message={error} 
+            <ErrorAlert
+              type="error"
+              message={error}
               onDismiss={() => setError('')}
               className="mb-6"
             />
@@ -165,19 +215,61 @@ export function AdminDashboard() {
           {renderContent()}
         </main>
       </div>
+
+      {/* Add Doctor Modal */}
+      <ModalForm
+        isOpen={showDoctorModal}
+        onClose={() => setShowDoctorModal(false)}
+        title="Add New Doctor"
+        submitLabel="Add Doctor"
+        isLoading={modalLoading}
+        onSubmit={handleAddDoctor}
+      >
+        <div className="space-y-4">
+          <Input name="name" label="Full Name" placeholder="Dr. Ahmed Khan" required />
+          <div className="grid grid-cols-2 gap-4">
+            <Input name="email" type="email" label="Email" placeholder="doctor@clinic.com" />
+            <Input name="phone" label="Phone" placeholder="+92 300 0000000" />
+          </div>
+          <Input name="specialty" label="Specialty" placeholder="e.g. Cardiology, Neurology" required />
+        </div>
+      </ModalForm>
+
+      {/* Add Receptionist Modal */}
+      <ModalForm
+        isOpen={showReceptionistModal}
+        onClose={() => setShowReceptionistModal(false)}
+        title="Add New Receptionist"
+        submitLabel="Add Receptionist"
+        isLoading={modalLoading}
+        onSubmit={handleAddReceptionist}
+      >
+        <div className="space-y-4">
+          <Input name="name" label="Full Name" placeholder="Sara Ali" required />
+          <div className="grid grid-cols-2 gap-4">
+            <Input name="email" type="email" label="Email" placeholder="sara@clinic.com" />
+            <Input name="phone" label="Phone" placeholder="+92 300 0000000" />
+          </div>
+        </div>
+      </ModalForm>
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        onClose={() => { setShowConfirmDialog(false); setDeleteTarget(null); }}
+        onConfirm={handleDelete}
+        title={`Delete ${deleteTarget?.type === 'doctor' ? 'Doctor' : 'Receptionist'}?`}
+        message={`"${deleteTarget?.data?.name}" ko permanently delete karna chahte hain?`}
+        confirmLabel="Haan, Delete Karo"
+        cancelLabel="Cancel"
+        variant="danger"
+      />
     </div>
   );
 }
 
-// Dashboard Overview Component
-function DashboardOverview({ stats, onNavigate }) {
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
-
+// Dashboard Overview
+function DashboardOverview({ stats, loading, onNavigate }) {
   if (loading) {
     return (
       <div className="space-y-6">
@@ -244,11 +336,11 @@ function DashboardOverview({ stats, onNavigate }) {
   );
 }
 
-// Doctor Management Component
-function DoctorManagement({ doctors, onAdd, onEdit, onDelete }) {
+// Doctor Management
+function DoctorManagement({ doctors, onAdd, onDelete }) {
   const columns = [
-    { 
-      key: 'name', 
+    {
+      key: 'name',
       header: 'Doctor',
       render: (value, row) => (
         <div className="flex items-center gap-3">
@@ -262,18 +354,18 @@ function DoctorManagement({ doctors, onAdd, onEdit, onDelete }) {
         </div>
       )
     },
-    { key: 'specialty', header: 'Specialty' },
-    { key: 'status', header: 'Status', render: (value) => <StatusBadge variant={value === 'active' ? 'success' : 'default'} size="sm" dot>{value}</StatusBadge> },
+    { key: 'specialty', header: 'Specialty', render: (v) => v || '-' },
+    { key: 'phone', header: 'Phone', render: (v) => v || '-' },
+    { key: 'status', header: 'Status', render: (value) => <StatusBadge variant={value === 'active' ? 'success' : 'default'} size="sm" dot>{value || 'active'}</StatusBadge> },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Manage Doctors"
-        subtitle="Add, edit, and remove medical staff"
+        subtitle="Add and remove medical staff"
         actions={<Button icon={Plus} onClick={onAdd}>Add Doctor</Button>}
       />
-
       {doctors.length === 0 ? (
         <EmptyState
           icon={Stethoscope}
@@ -288,14 +380,12 @@ function DoctorManagement({ doctors, onAdd, onEdit, onDelete }) {
           searchable
           sortable
           actions={(row) => (
-            <>
-              <button onClick={() => onEdit(row)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                <Edit className="w-4 h-4" />
-              </button>
-              <button onClick={() => onDelete(row)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </>
+            <button
+              onClick={() => onDelete(row)}
+              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           )}
         />
       )}
@@ -303,11 +393,11 @@ function DoctorManagement({ doctors, onAdd, onEdit, onDelete }) {
   );
 }
 
-// Receptionist Management Component
-function ReceptionistManagement({ receptionists, onAdd, onEdit, onDelete }) {
+// Receptionist Management
+function ReceptionistManagement({ receptionists, onAdd, onDelete }) {
   const columns = [
-    { 
-      key: 'name', 
+    {
+      key: 'name',
       header: 'Name',
       render: (value, row) => (
         <div className="flex items-center gap-3">
@@ -321,23 +411,22 @@ function ReceptionistManagement({ receptionists, onAdd, onEdit, onDelete }) {
         </div>
       )
     },
-    { key: 'phone', header: 'Phone' },
-    { key: 'status', header: 'Status', render: (value) => <StatusBadge variant={value === 'active' ? 'success' : 'default'} size="sm" dot>{value}</StatusBadge> },
+    { key: 'phone', header: 'Phone', render: (v) => v || '-' },
+    { key: 'status', header: 'Status', render: (value) => <StatusBadge variant={value === 'active' ? 'success' : 'default'} size="sm" dot>{value || 'active'}</StatusBadge> },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Manage Receptionists"
-        subtitle="Manage front desk administrative staff"
+        subtitle="Manage front desk staff"
         actions={<Button icon={Plus} onClick={onAdd}>Add Receptionist</Button>}
       />
-
       {receptionists.length === 0 ? (
         <EmptyState
           icon={UserCog}
           title="No receptionists yet"
-          description="Add your first receptionist to get started"
+          description="Add your first receptionist"
           action={<Button icon={Plus} onClick={onAdd}>Add Receptionist</Button>}
         />
       ) : (
@@ -347,14 +436,12 @@ function ReceptionistManagement({ receptionists, onAdd, onEdit, onDelete }) {
           searchable
           sortable
           actions={(row) => (
-            <>
-              <button onClick={() => onEdit(row)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                <Edit className="w-4 h-4" />
-              </button>
-              <button onClick={() => onDelete(row)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </>
+            <button
+              onClick={() => onDelete(row)}
+              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           )}
         />
       )}
@@ -362,11 +449,11 @@ function ReceptionistManagement({ receptionists, onAdd, onEdit, onDelete }) {
   );
 }
 
-// Patient Management Component
-function PatientManagement({ patients, doctors, onAssign }) {
+// Patient Management
+function PatientManagement({ patients }) {
   const columns = [
-    { 
-      key: 'name', 
+    {
+      key: 'name',
       header: 'Patient',
       render: (value, row) => (
         <div className="flex items-center gap-3">
@@ -380,23 +467,25 @@ function PatientManagement({ patients, doctors, onAssign }) {
         </div>
       )
     },
-    { key: 'role', header: 'Role' },
-    { key: 'status', header: 'Status', render: (value) => <StatusBadge variant={value === 'active' ? 'success' : 'default'} size="sm" dot>{value}</StatusBadge> },
+    { key: 'role', header: 'Role', render: (v) => v || 'patient' },
+    { key: 'status', header: 'Status', render: (value) => <StatusBadge variant={value === 'active' ? 'success' : 'default'} size="sm" dot>{value || 'active'}</StatusBadge> },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Manage Patients"
-        subtitle={`View all ${patients.length} patients in the system`}
+        subtitle={`${patients.length} patients registered`}
       />
-
-      <DataTable
-        columns={columns}
-        data={patients}
-        searchable
-        sortable
-      />
+      {patients.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="No patients yet"
+          description="Patients who sign up will appear here"
+        />
+      ) : (
+        <DataTable columns={columns} data={patients} searchable sortable />
+      )}
     </div>
   );
 }

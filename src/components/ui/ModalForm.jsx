@@ -50,7 +50,9 @@ export function ModalForm({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (closeOnSubmit) {
+    if (onSubmit) {
+      onSubmit(e); // caller handles data saving + closing
+    } else if (closeOnSubmit) {
       onClose();
     }
   };
