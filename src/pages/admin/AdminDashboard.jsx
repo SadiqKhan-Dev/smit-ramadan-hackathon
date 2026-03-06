@@ -554,6 +554,9 @@ function DoctorManagement({ doctors, onAdd, onDelete }) {
         </div>
       )
     },
+    { key: 'gender', header: 'Gender', render: (v) => v ? (
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === 'Male' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'}`}>{v}</span>
+    ) : <span className="text-gray-400 text-xs">-</span> },
     { key: 'specialty', header: 'Specialty', render: (v) => v || '-' },
     { key: 'phone', header: 'Phone', render: (v) => v || '-' },
     { key: 'status', header: 'Status', render: (value) => <StatusBadge variant={value === 'active' ? 'success' : 'default'} size="sm" dot>{value || 'active'}</StatusBadge> },
@@ -674,6 +677,9 @@ function PatientManagement({ patients, onAdd, onEdit, onDelete }) {
         </div>
       )
     },
+    { key: 'gender', header: 'Gender', render: (v) => v ? (
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === 'Male' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'}`}>{v}</span>
+    ) : <span className="text-gray-400 text-xs">-</span> },
     { key: 'phone', header: 'Phone', render: (v) => v || '-' },
     { key: 'bloodType', header: 'Blood Type', render: (v) => v ? (
       <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded-full text-xs font-bold">{v}</span>
