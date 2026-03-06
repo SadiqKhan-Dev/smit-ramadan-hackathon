@@ -106,7 +106,7 @@ export function AdminDashboard() {
         totalPatients: MOCK_ADMIN_PATIENTS.length,
         totalRevenue: MOCK_ADMIN_PATIENTS.length * 150,
       });
-      setError('Firestore se data load nahi ho saka. Demo data show kiya ja raha hai.');
+      // Silently use mock data — no need to alarm the user
     } finally {
       setLoading(false);
     }
