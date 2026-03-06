@@ -5,8 +5,10 @@ import { db } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
-  Stethoscope, Users, UserCog, DollarSign, Calendar,
-  Plus, Edit, Trash2
+  Stethoscope, Users, UserCog, DollarSign,
+  Plus, Edit, Trash2, TrendingUp, TrendingDown,
+  Activity, FileText, Bell, Shield, Palette, Globe,
+  CheckCircle, AlertTriangle, Clock, Heart
 } from 'lucide-react';
 import { Sidebar } from '../../components/layout/Sidebar';
 import { Card, CardContent, StatCard } from '../../components/ui/Card';
@@ -242,6 +244,12 @@ export function AdminDashboard() {
             onDelete={(patient) => { setDeleteTarget({ type: 'patient', data: patient }); setShowConfirmDialog(true); }}
           />
         );
+      case 'analytics':
+        return <AnalyticsSection stats={stats} doctors={doctors} patients={patients} receptionists={receptionists} />;
+      case 'reports':
+        return <ReportsSection stats={stats} doctors={doctors} patients={patients} receptionists={receptionists} />;
+      case 'settings':
+        return <SettingsSection />;
       default:
         return <DashboardOverview stats={stats} loading={loading} onNavigate={setActiveSection} />;
     }
@@ -699,6 +707,454 @@ function PatientManagement({ patients, onAdd, onEdit, onDelete }) {
           )}
         />
       )}
+    </div>
+  );
+}
+
+// ─── Analytics Section ────────────────────────────────────────────────────────
+function AnalyticsSection({ stats, doctors, patients, receptionists }) {
+  const statusCounts = {
+    active: patients.filter(p => (p.status || 'active') === 'active').length,
+    critical: patients.filter(p => p.status === 'critical').length,
+    recovered: patients.filter(p => p.status === 'recovered').length,
+    inactive: patients.filter(p => p.status === 'inactive').length,
+  };
+
+  const bloodTypeCounts = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bt => ({
+    label: bt,
+    count: patients.filter(p => p.bloodType === bt).length,
+  })).filter(b => b.count > 0);
+
+  const maxBlood = Math.max(...bloodTypeCounts.map(b => b.count), 1);
+  const totalPatients = patients.length || 1;
+
+  const statusConfig = [
+    { key: 'active', label: 'Active', color: 'bg-green-500', text: 'text-green-700', bg: 'bg-green-50' },
+    { key: 'critical', label: 'Critical', color: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50' },
+    { key: 'recovered', label: 'Recovered', color: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-50' },
+    { key: 'inactive', label: 'Inactive', color: 'bg-gray-400', text: 'text-gray-600', bg: 'bg-gray-50' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Analytics" subtitle="Clinic performance overview" />
+
+      {/* Top Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Doctors', value: stats.totalDoctors, icon: Stethoscope, color: 'blue' },
+          { label: 'Total Patients', value: stats.totalPatients, icon: Users, color: 'purple' },
+          { label: 'Staff Members', value: stats.totalReceptionists, icon: UserCog, color: 'green' },
+          { label: 'Est. Revenue', value: `$${stats.totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'orange' },
+        ].map((item, i) => (
+          <div key={i} className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+            <div className={`inline-flex p-2 rounded-lg mb-3 ${
+              item.color === 'blue' ? 'bg-blue-50' :
+              item.color === 'purple' ? 'bg-purple-50' :
+              item.color === 'green' ? 'bg-green-50' : 'bg-orange-50'
+            }`}>
+              <item.icon className={`w-5 h-5 ${
+                item.color === 'blue' ? 'text-blue-600' :
+                item.color === 'purple' ? 'text-purple-600' :
+                item.color === 'green' ? 'text-green-600' : 'text-orange-600'
+              }`} />
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{item.value}</p>
+            <p className="text-sm text-gray-500 mt-0.5">{item.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Patient Status Breakdown */}
+        <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-5">
+            <Activity className="w-5 h-5 text-blue-600" />
+            <h3 className="font-semibold text-gray-900">Patient Status Breakdown</h3>
+          </div>
+          <div className="space-y-4">
+            {statusConfig.map(({ key, label, color, text, bg }) => {
+              const count = statusCounts[key];
+              const pct = Math.round((count / totalPatients) * 100);
+              return (
+                <div key={key}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${text} ${bg}`}>{label}</span>
+                    <span className="text-sm font-bold text-gray-700">{count} <span className="text-gray-400 font-normal">({pct}%)</span></span>
+                  </div>
+                  <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${color} rounded-full transition-all duration-500`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Blood Type Distribution */}
+        <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-5">
+            <Heart className="w-5 h-5 text-red-500" />
+            <h3 className="font-semibold text-gray-900">Blood Type Distribution</h3>
+          </div>
+          {bloodTypeCounts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-32 text-gray-400">
+              <Heart className="w-8 h-8 mb-2 opacity-30" />
+              <p className="text-sm">No blood type data yet</p>
+            </div>
+          ) : (
+            <div className="flex items-end gap-3 h-36">
+              {bloodTypeCounts.map(({ label, count }) => (
+                <div key={label} className="flex-1 flex flex-col items-center gap-1">
+                  <span className="text-xs font-bold text-gray-700">{count}</span>
+                  <div
+                    className="w-full bg-red-400 rounded-t-md transition-all duration-500"
+                    style={{ height: `${(count / maxBlood) * 96}px` }}
+                  />
+                  <span className="text-xs font-semibold text-red-700">{label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Staff vs Patients ratio */}
+      <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-5">
+          <TrendingUp className="w-5 h-5 text-green-600" />
+          <h3 className="font-semibold text-gray-900">Staff Overview</h3>
+        </div>
+        <div className="grid grid-cols-3 gap-4 text-center">
+          {[
+            { label: 'Doctors', value: stats.totalDoctors, color: 'text-blue-600', bar: 'bg-blue-500' },
+            { label: 'Receptionists', value: stats.totalReceptionists, color: 'text-green-600', bar: 'bg-green-500' },
+            { label: 'Patients', value: stats.totalPatients, color: 'text-purple-600', bar: 'bg-purple-500' },
+          ].map((item, i) => {
+            const maxVal = Math.max(stats.totalDoctors, stats.totalReceptionists, stats.totalPatients, 1);
+            return (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <span className={`text-3xl font-bold ${item.color}`}>{item.value}</span>
+                <div className="w-full h-2 bg-gray-100 rounded-full">
+                  <div className={`h-full ${item.bar} rounded-full`} style={{ width: `${(item.value / maxVal) * 100}%` }} />
+                </div>
+                <span className="text-sm text-gray-500">{item.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Reports Section ──────────────────────────────────────────────────────────
+function ReportsSection({ stats, doctors, patients, receptionists }) {
+  const today = new Date().toLocaleDateString('en-PK', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const criticalPatients = patients.filter(p => p.status === 'critical');
+  const recoveredPatients = patients.filter(p => p.status === 'recovered');
+  const activePatients = patients.filter(p => (p.status || 'active') === 'active');
+
+  const summaryCards = [
+    { label: 'Total Staff', value: stats.totalDoctors + stats.totalReceptionists, icon: UserCog, color: 'blue', desc: `${stats.totalDoctors} doctors, ${stats.totalReceptionists} receptionists` },
+    { label: 'Active Patients', value: activePatients.length, icon: CheckCircle, color: 'green', desc: 'Currently under treatment' },
+    { label: 'Critical Cases', value: criticalPatients.length, icon: AlertTriangle, color: 'red', desc: 'Require immediate attention' },
+    { label: 'Recovered', value: recoveredPatients.length, icon: TrendingUp, color: 'purple', desc: 'Successfully treated' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Reports"
+        subtitle={`Generated on ${today}`}
+        actions={
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <FileText className="w-4 h-4" />
+            Print Report
+          </button>
+        }
+      />
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {summaryCards.map((card, i) => (
+          <div key={i} className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+            <div className={`inline-flex p-2 rounded-lg mb-3 ${
+              card.color === 'blue' ? 'bg-blue-50' :
+              card.color === 'green' ? 'bg-green-50' :
+              card.color === 'red' ? 'bg-red-50' : 'bg-purple-50'
+            }`}>
+              <card.icon className={`w-5 h-5 ${
+                card.color === 'blue' ? 'text-blue-600' :
+                card.color === 'green' ? 'text-green-600' :
+                card.color === 'red' ? 'text-red-600' : 'text-purple-600'
+              }`} />
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+            <p className="text-sm font-medium text-gray-700">{card.label}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{card.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Doctors Report Table */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <Stethoscope className="w-4 h-4 text-blue-600" />
+          <h3 className="font-semibold text-gray-900">Doctors Report</h3>
+          <span className="ml-auto text-xs text-gray-400">{doctors.length} total</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                {['#', 'Name', 'Specialty', 'Email', 'Phone', 'Status'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {doctors.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-gray-400 text-sm">No doctors found</td></tr>
+              ) : doctors.map((d, i) => (
+                <tr key={d.id || i} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 text-gray-400">{i + 1}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900">{d.name}</td>
+                  <td className="px-4 py-3 text-gray-600">{d.specialty || '-'}</td>
+                  <td className="px-4 py-3 text-gray-500">{d.email || '-'}</td>
+                  <td className="px-4 py-3 text-gray-500">{d.phone || '-'}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${d.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                      {d.status || 'active'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Critical Patients Alert */}
+      {criticalPatients.length > 0 && (
+        <div className="bg-white rounded-xl border border-red-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-red-100 flex items-center gap-2 bg-red-50">
+            <AlertTriangle className="w-4 h-4 text-red-600" />
+            <h3 className="font-semibold text-red-700">Critical Patients — Immediate Attention Required</h3>
+            <span className="ml-auto text-xs text-red-500">{criticalPatients.length} patients</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  {['#', 'Patient', 'Disease', 'Blood Type', 'Phone'].map(h => (
+                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {criticalPatients.map((p, i) => (
+                  <tr key={p.id || i} className="hover:bg-red-50/30">
+                    <td className="px-4 py-3 text-gray-400">{i + 1}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{p.name}</td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-0.5 bg-orange-50 text-orange-700 rounded-full text-xs">{p.disease || '-'}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded-full text-xs font-bold">{p.bloodType || '-'}</span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">{p.phone || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Revenue Summary */}
+      <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <DollarSign className="w-5 h-5 text-green-600" />
+          <h3 className="font-semibold text-gray-900">Revenue Summary</h3>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center p-4 bg-green-50 rounded-xl">
+            <p className="text-2xl font-bold text-green-700">${stats.totalRevenue.toLocaleString()}</p>
+            <p className="text-sm text-green-600 mt-1">Estimated Total</p>
+          </div>
+          <div className="text-center p-4 bg-blue-50 rounded-xl">
+            <p className="text-2xl font-bold text-blue-700">${(stats.totalRevenue / (new Date().getMonth() + 1)).toFixed(0)}</p>
+            <p className="text-sm text-blue-600 mt-1">Monthly Average</p>
+          </div>
+          <div className="text-center p-4 bg-purple-50 rounded-xl">
+            <p className="text-2xl font-bold text-purple-700">$150</p>
+            <p className="text-sm text-purple-600 mt-1">Per Patient</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Settings Section ─────────────────────────────────────────────────────────
+function SettingsSection() {
+  const [saved, setSaved] = useState(false);
+  const [notifications, setNotifications] = useState({ email: true, sms: false, critical: true });
+
+  function handleSave(e) {
+    e.preventDefault();
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  }
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <PageHeader title="Settings" subtitle="Manage clinic configuration" />
+
+      {saved && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm font-medium">
+          <CheckCircle className="w-4 h-4" />
+          Settings saved successfully!
+        </div>
+      )}
+
+      {/* Clinic Information */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <Globe className="w-4 h-4 text-blue-600" />
+          <h3 className="font-semibold text-gray-900">Clinic Information</h3>
+        </div>
+        <form onSubmit={handleSave} className="p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Clinic Name</label>
+              <input
+                type="text"
+                defaultValue="ClinicPro Medical Center"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Email</label>
+              <input
+                type="email"
+                defaultValue="admin@clinicpro.com"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
+              <input
+                type="tel"
+                defaultValue="+92 300 0000000"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+              <input
+                type="text"
+                defaultValue="Karachi, Pakistan"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Address</label>
+            <textarea
+              rows={2}
+              defaultValue="123 Medical Street, Gulshan-e-Iqbal, Karachi"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 resize-none"
+            />
+          </div>
+          <div className="flex justify-end">
+            <button type="submit" className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Notification Settings */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <Bell className="w-4 h-4 text-purple-600" />
+          <h3 className="font-semibold text-gray-900">Notification Settings</h3>
+        </div>
+        <div className="p-6 space-y-4">
+          {[
+            { key: 'email', label: 'Email Notifications', desc: 'Receive updates via email for new appointments' },
+            { key: 'sms', label: 'SMS Notifications', desc: 'Get SMS alerts for critical patient updates' },
+            { key: 'critical', label: 'Critical Patient Alerts', desc: 'Instant alert when a patient is marked critical' },
+          ].map(({ key, label, desc }) => (
+            <div key={key} className="flex items-center justify-between py-2">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{label}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+              </div>
+              <button
+                onClick={() => setNotifications(prev => ({ ...prev, [key]: !prev[key] }))}
+                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${notifications[key] ? 'bg-blue-600' : 'bg-gray-200'}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${notifications[key] ? 'translate-x-5' : 'translate-x-0'}`} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Security Settings */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <Shield className="w-4 h-4 text-red-500" />
+          <h3 className="font-semibold text-gray-900">Security</h3>
+        </div>
+        <div className="p-6 space-y-3">
+          {[
+            { label: 'Change Password', desc: 'Update your admin account password', btn: 'Change', color: 'blue' },
+            { label: 'Two-Factor Authentication', desc: 'Add an extra layer of security to your account', btn: 'Enable', color: 'green' },
+            { label: 'Active Sessions', desc: 'View and manage all active login sessions', btn: 'View', color: 'gray' },
+          ].map((item, i) => (
+            <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+              <div>
+                <p className="text-sm font-medium text-gray-900">{item.label}</p>
+                <p className="text-xs text-gray-500">{item.desc}</p>
+              </div>
+              <button className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                item.color === 'blue' ? 'border-blue-200 text-blue-600 hover:bg-blue-50' :
+                item.color === 'green' ? 'border-green-200 text-green-600 hover:bg-green-50' :
+                'border-gray-200 text-gray-600 hover:bg-gray-100'
+              }`}>
+                {item.btn}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Appearance */}
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+          <Palette className="w-4 h-4 text-orange-500" />
+          <h3 className="font-semibold text-gray-900">Appearance</h3>
+        </div>
+        <div className="p-6">
+          <p className="text-sm text-gray-600 mb-4">Choose accent color for the dashboard</p>
+          <div className="flex gap-3">
+            {['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-orange-500', 'bg-red-500', 'bg-teal-500'].map((color, i) => (
+              <button key={i} className={`w-8 h-8 rounded-full ${color} ${i === 0 ? 'ring-2 ring-offset-2 ring-blue-500' : ''} hover:scale-110 transition-transform`} />
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
