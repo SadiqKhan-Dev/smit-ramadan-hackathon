@@ -19,10 +19,13 @@ function getRoleLocally(uid) {
   try { return localStorage.getItem(`cp_role_${uid}`); } catch (_) { return null; }
 }
 
-// Fetch role: Firestore first, localStorage fallback
+// Fetch role: Firestore first (with 4s timeout), localStorage fallback
 async function fetchRole(uid) {
   try {
-    const snap = await getDoc(doc(db, 'users', uid));
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 4000)
+    );
+    const snap = await Promise.race([getDoc(doc(db, 'users', uid)), timeout]);
     if (snap.exists() && snap.data().role) {
       saveRoleLocally(uid, snap.data().role); // keep cache fresh
       return snap.data().role;

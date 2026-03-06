@@ -42,7 +42,17 @@ export function LoginPage() {
 
     const result = await login(email, password);
     if (result.success) {
-      navigate(ROLE_ROUTES[result.role] || '/dashboard');
+      const route = ROLE_ROUTES[result.role];
+      if (route) {
+        navigate(route);
+      } else {
+        // Auth succeeded but role not found in Firestore yet
+        // (happens when account was just created by admin and Firestore hasn't synced)
+        setLocalError(
+          'Login ho gaya lekin role verify nahi ho saka. ' +
+          'Thodi der (30 seconds) baad dobara try karo, ya admin se contact karo.'
+        );
+      }
     } else {
       setLocalError(result.error || 'Login failed');
     }

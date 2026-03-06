@@ -3,8 +3,6 @@ import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth'
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
-// Secondary app uses same Firebase project config
-// This lets us create Auth accounts WITHOUT signing out the currently logged-in admin
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -14,16 +12,23 @@ const firebaseConfig = {
   appId:             import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+// Race a promise against a timeout; resolves with { timedOut: true } on timeout
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise.then(v => ({ timedOut: false, value: v })),
+    new Promise(resolve => setTimeout(() => resolve({ timedOut: true }), ms)),
+  ]);
+}
+
 export async function createUserAccount({ name, email, password, role, specialty, phone }) {
-  // Each call gets a unique app name so multiple calls don't conflict
   const secondaryApp = initializeApp(firebaseConfig, `tmp_${Date.now()}`);
   const secondaryAuth = getAuth(secondaryApp);
 
   try {
+    // 1 — Create Firebase Auth account (secondary app so admin stays signed in)
     const { user } = await createUserWithEmailAndPassword(secondaryAuth, email, password);
 
-    // Fire-and-forget Firestore profile — never block on this (Firestore can hang offline)
-    setDoc(doc(db, 'users', user.uid), {
+    const profileData = {
       uid:        user.uid,
       name,
       email,
@@ -33,9 +38,23 @@ export async function createUserAccount({ name, email, password, role, specialty
       status:     'active',
       hasAccount: true,
       createdAt:  new Date().toISOString(),
-    }).catch(err => console.warn('Firestore profile save failed (non-blocking):', err.message));
+    };
 
-    // Sign the new user out of the secondary app (also non-blocking)
+    // 2 — Try to save Firestore profile within 5 seconds
+    const result = await withTimeout(
+      setDoc(doc(db, 'users', user.uid), profileData),
+      5000
+    );
+
+    if (result.timedOut) {
+      // Firestore too slow — retry once more in background, still return success
+      // because Auth account is created. Doctor can login once Firestore syncs.
+      setDoc(doc(db, 'users', user.uid), profileData)
+        .catch(err => console.warn('Background profile retry failed:', err.message));
+      console.warn('Firestore profile save timed out — retrying in background');
+    }
+
+    // 3 — Sign out from secondary app
     signOut(secondaryAuth).catch(() => {});
 
     return { success: true, uid: user.uid };
@@ -44,11 +63,10 @@ export async function createUserAccount({ name, email, password, role, specialty
       'auth/email-already-in-use': 'Yeh email already registered hai',
       'auth/weak-password':        'Password kam az kam 6 characters ka hona chahiye',
       'auth/invalid-email':        'Email address galat hai',
-      'auth/network-request-failed': 'Network error. Internet check karo.',
+      'auth/network-request-failed': 'Network error. Internet connection check karo.',
     };
     return { success: false, error: errorMap[err.code] || err.message };
   } finally {
-    // Delay cleanup so signOut has time to finish
-    setTimeout(() => { try { deleteApp(secondaryApp); } catch (_) {} }, 3000);
+    setTimeout(() => { try { deleteApp(secondaryApp); } catch (_) {} }, 5000);
   }
 }
