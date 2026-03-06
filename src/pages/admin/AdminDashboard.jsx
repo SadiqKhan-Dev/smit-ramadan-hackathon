@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where } from 'firebase/firestore';
 import { MOCK_ADMIN_DOCTORS, MOCK_ADMIN_RECEPTIONISTS, MOCK_ADMIN_PATIENTS } from '../../data/mockData';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
@@ -38,6 +38,9 @@ export function AdminDashboard() {
   // Modal states
   const [showDoctorModal, setShowDoctorModal] = useState(false);
   const [showReceptionistModal, setShowReceptionistModal] = useState(false);
+  const [showPatientModal, setShowPatientModal] = useState(false);
+  const [showEditPatientModal, setShowEditPatientModal] = useState(false);
+  const [editingPatient, setEditingPatient] = useState(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
@@ -150,6 +153,51 @@ export function AdminDashboard() {
     }
   }
 
+  // Add Patient handler
+  async function handleAddPatient(e) {
+    const formData = new FormData(e.target);
+    const name = formData.get('name');
+    if (!name) return;
+    setModalLoading(true);
+    try {
+      await addDoc(collection(db, 'users'), {
+        name,
+        email: formData.get('email') || '',
+        phone: formData.get('phone') || '',
+        disease: formData.get('disease') || '',
+        role: 'patient',
+        status: formData.get('status') || 'active',
+        createdAt: new Date().toISOString(),
+      });
+      setShowPatientModal(false);
+      fetchData();
+    } catch (err) {
+      setError('Patient add karne mein error aya. Firestore rules check karein.');
+    } finally {
+      setModalLoading(false);
+    }
+  }
+
+  // Update Patient (disease + status)
+  async function handleUpdatePatient(e) {
+    if (!editingPatient) return;
+    const formData = new FormData(e.target);
+    setModalLoading(true);
+    try {
+      await updateDoc(doc(db, 'users', editingPatient.id), {
+        disease: formData.get('disease') || editingPatient.disease || '',
+        status: formData.get('status') || editingPatient.status || 'active',
+      });
+      setShowEditPatientModal(false);
+      setEditingPatient(null);
+      fetchData();
+    } catch (err) {
+      setError('Patient update karne mein error aya. Firestore rules check karein.');
+    } finally {
+      setModalLoading(false);
+    }
+  }
+
   // Delete handler
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -184,7 +232,14 @@ export function AdminDashboard() {
           />
         );
       case 'patients':
-        return <PatientManagement patients={patients} />;
+        return (
+          <PatientManagement
+            patients={patients}
+            onAdd={() => setShowPatientModal(true)}
+            onEdit={(patient) => { setEditingPatient(patient); setShowEditPatientModal(true); }}
+            onDelete={(patient) => { setDeleteTarget({ type: 'patient', data: patient }); setShowConfirmDialog(true); }}
+          />
+        );
       default:
         return <DashboardOverview stats={stats} loading={loading} onNavigate={setActiveSection} />;
     }
@@ -263,12 +318,66 @@ export function AdminDashboard() {
         </div>
       </ModalForm>
 
+      {/* Add Patient Modal */}
+      <ModalForm
+        isOpen={showPatientModal}
+        onClose={() => setShowPatientModal(false)}
+        title="Add New Patient"
+        submitLabel="Add Patient"
+        isLoading={modalLoading}
+        onSubmit={handleAddPatient}
+      >
+        <div className="space-y-4">
+          <Input name="name" label="Full Name" placeholder="Ali Hassan" required />
+          <div className="grid grid-cols-2 gap-4">
+            <Input name="email" type="email" label="Email" placeholder="ali@gmail.com" />
+            <Input name="phone" label="Phone" placeholder="+92 300 0000000" />
+          </div>
+          <Input name="disease" label="Disease / Condition" placeholder="e.g. Diabetes, Fever, Flu" required />
+          <Select name="status" label="Status">
+            <option value="active">Active</option>
+            <option value="critical">Critical</option>
+            <option value="recovered">Recovered</option>
+            <option value="inactive">Inactive</option>
+          </Select>
+        </div>
+      </ModalForm>
+
+      {/* Edit Patient Modal */}
+      <ModalForm
+        isOpen={showEditPatientModal}
+        onClose={() => { setShowEditPatientModal(false); setEditingPatient(null); }}
+        title="Update Patient Info"
+        submitLabel="Save Changes"
+        isLoading={modalLoading}
+        onSubmit={handleUpdatePatient}
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm font-medium text-gray-900">{editingPatient?.name}</p>
+            <p className="text-xs text-gray-500">{editingPatient?.email}</p>
+          </div>
+          <Input
+            name="disease"
+            label="Disease / Condition"
+            placeholder="e.g. Diabetes, Fever"
+            defaultValue={editingPatient?.disease || ''}
+          />
+          <Select name="status" label="Status" defaultValue={editingPatient?.status || 'active'}>
+            <option value="active">Active</option>
+            <option value="critical">Critical</option>
+            <option value="recovered">Recovered</option>
+            <option value="inactive">Inactive</option>
+          </Select>
+        </div>
+      </ModalForm>
+
       {/* Delete Confirmation */}
       <ConfirmDialog
         isOpen={showConfirmDialog}
         onClose={() => { setShowConfirmDialog(false); setDeleteTarget(null); }}
         onConfirm={handleDelete}
-        title={`Delete ${deleteTarget?.type === 'doctor' ? 'Doctor' : 'Receptionist'}?`}
+        title={`Delete ${deleteTarget?.type === 'doctor' ? 'Doctor' : deleteTarget?.type === 'patient' ? 'Patient' : 'Receptionist'}?`}
         message={`"${deleteTarget?.data?.name}" ko permanently delete karna chahte hain?`}
         confirmLabel="Haan, Delete Karo"
         cancelLabel="Cancel"
@@ -460,7 +569,14 @@ function ReceptionistManagement({ receptionists, onAdd, onDelete }) {
 }
 
 // Patient Management
-function PatientManagement({ patients }) {
+function PatientManagement({ patients, onAdd, onEdit, onDelete }) {
+  const statusVariant = (status) => {
+    if (status === 'active') return 'success';
+    if (status === 'critical') return 'danger';
+    if (status === 'recovered') return 'info';
+    return 'default';
+  };
+
   const columns = [
     {
       key: 'name',
@@ -477,8 +593,19 @@ function PatientManagement({ patients }) {
         </div>
       )
     },
-    { key: 'role', header: 'Role', render: (v) => v || 'patient' },
-    { key: 'status', header: 'Status', render: (value) => <StatusBadge variant={value === 'active' ? 'success' : 'default'} size="sm" dot>{value || 'active'}</StatusBadge> },
+    { key: 'phone', header: 'Phone', render: (v) => v || '-' },
+    { key: 'disease', header: 'Disease', render: (v) => v ? (
+      <span className="px-2 py-0.5 bg-orange-50 text-orange-700 rounded-full text-xs font-medium">{v}</span>
+    ) : <span className="text-gray-400 text-xs">Not set</span> },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (value) => (
+        <StatusBadge variant={statusVariant(value)} size="sm" dot>
+          {value || 'active'}
+        </StatusBadge>
+      )
+    },
   ];
 
   return (
@@ -486,15 +613,40 @@ function PatientManagement({ patients }) {
       <PageHeader
         title="Manage Patients"
         subtitle={`${patients.length} patients registered`}
+        actions={<Button icon={Plus} onClick={onAdd}>Add Patient</Button>}
       />
       {patients.length === 0 ? (
         <EmptyState
           icon={Users}
           title="No patients yet"
           description="Patients who sign up will appear here"
+          action={<Button icon={Plus} onClick={onAdd}>Add Patient</Button>}
         />
       ) : (
-        <DataTable columns={columns} data={patients} searchable sortable />
+        <DataTable
+          columns={columns}
+          data={patients}
+          searchable
+          sortable
+          actions={(row) => (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => onEdit(row)}
+                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Edit disease & status"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onDelete(row)}
+                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Delete patient"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        />
       )}
     </div>
   );
