@@ -75,10 +75,16 @@ export function AuthProvider({ children }) {
       const { user } = await signInWithEmailAndPassword(auth, email, password);
 
       // Set role BEFORE navigate so DashboardRouter never has to wait
-      const role = await fetchRole(user.uid);
-      if (role) setUserRole(role);
+      let role = await fetchRole(user.uid);
+      
+      // If role found, update state
+      if (role) {
+        setUserRole(role);
+      }
 
-      return { success: true, role };
+      // Always return the role (even if from localStorage only)
+      // This ensures demo login works even if Firestore is slow/empty
+      return { success: true, role: role || getRoleLocally(user.uid) };
     } catch (err) {
       const msg = getErrorMessage(err.code, err.message);
       setError(msg);

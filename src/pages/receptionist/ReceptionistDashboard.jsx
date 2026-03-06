@@ -76,7 +76,18 @@ export function ReceptionistDashboard() {
       });
     } catch (err) {
       console.error('Fetch error:', err);
-      setError('Data load karne mein error aya.');
+      // Use mock data on error
+      setPatients(MOCK_PATIENTS_LIST);
+      setDoctors(MOCK_DOCTORS);
+      setAppointments(MOCK_ALL_APPOINTMENTS);
+      const today = new Date().toISOString().split('T')[0];
+      setStats({
+        totalPatients: MOCK_PATIENTS_LIST.length,
+        todayBookings: MOCK_ALL_APPOINTMENTS.filter(a => a.date === today).length,
+        doctorsAvailable: MOCK_DOCTORS.filter(d => d.status === 'active').length,
+        upcomingAppointments: MOCK_ALL_APPOINTMENTS.filter(a => a.date >= today).length,
+      });
+      setError('Firestore se data load nahi ho saka. Demo data show kiya ja raha hai.');
     } finally {
       setLoading(false);
     }

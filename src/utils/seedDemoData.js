@@ -1,10 +1,40 @@
-import { collection, addDoc, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 const today = new Date().toISOString().split('T')[0];
 const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+
+/* ─── SEED DEMO USER ACCOUNTS ────────────────────────────────────── */
+// Creates demo accounts in Firestore if they exist in Auth but not in Firestore
+export async function seedDemoUserAccounts() {
+  const demoUsers = [
+    { email: 'admin@clinic.com', role: 'admin', name: 'Admin User' },
+    { email: 'doctor@clinic.com', role: 'doctor', name: 'Dr. Ahmed Khan', specialty: 'General Physician' },
+    { email: 'receptionist@clinic.com', role: 'receptionist', name: 'Sara Ali' },
+    { email: 'patient@clinic.com', role: 'patient', name: 'Ali Hassan' },
+  ];
+
+  const usersRef = collection(db, 'users');
+  
+  for (const demoUser of demoUsers) {
+    const q = query(usersRef, where('email', '==', demoUser.email));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      // Create the user record in Firestore
+      await addDoc(usersRef, {
+        ...demoUser,
+        specialty: demoUser.specialty || null,
+        phone: null,
+        status: 'active',
+        uid: `demo_${demoUser.role}`,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }
+}
 
 /* ─── ADMIN SEED ─────────────────────────────────────────────────── */
 export async function seedAdminData(adminUid) {

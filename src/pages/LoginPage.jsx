@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardContent } from '../components/ui/Card';
 import { ErrorAlert } from '../components/ui/components';
+import { seedDemoUserAccounts } from '../utils/seedDemoData';
 
 const DEMO_ACCOUNTS = [
   { role: 'admin',        email: 'admin@clinic.com',        password: 'demo1234', name: 'Admin User',    specialty: null,               label: 'Admin',        color: 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' },
@@ -54,10 +55,18 @@ export function LoginPage() {
     setLocalError('');
     setError(null);
 
+    // Pehle Firestore mein demo accounts seed karo (ensure role exists)
+    try {
+      await seedDemoUserAccounts();
+    } catch (seedErr) {
+      console.warn('Failed to seed demo accounts:', seedErr);
+      // Continue anyway - fallback logic will handle it
+    }
+
     // Pehle login try karo
     const result = await login(account.email, account.password);
 
-    if (result.success) {
+    if (result.success && result.role) {
       setDemoLoading('');
       navigate(ROLE_ROUTES[result.role] || '/dashboard');
       return;
@@ -88,10 +97,38 @@ export function LoginPage() {
       // Already in use means account exists - retry login
       if (signupResult.error?.toLowerCase().includes('already')) {
         const retry = await login(account.email, account.password);
-        if (retry.success) {
+        if (retry.success && retry.role) {
           setDemoLoading('');
           navigate(ROLE_ROUTES[retry.role] || '/dashboard');
           return;
+        }
+        // Account exists but role missing - fix it manually
+        if (retry.success && !retry.role) {
+          // Role Firestore mein missing hai - manually set karo
+          try {
+            const { doc, setDoc } = await import('firebase/firestore');
+            const { db } = await import('../config/firebase');
+            const { auth } = await import('firebase/auth');
+            const user = auth.currentUser;
+            if (user) {
+              await setDoc(doc(db, 'users', user.uid), {
+                uid: user.uid,
+                name: account.name,
+                email: account.email,
+                role: account.role,
+                specialty: account.specialty || null,
+                phone: null,
+                createdAt: new Date().toISOString(),
+                status: 'active',
+              }, { merge: true });
+              localStorage.setItem(`cp_role_${user.uid}`, account.role);
+              setDemoLoading('');
+              navigate(ROLE_ROUTES[account.role]);
+              return;
+            }
+          } catch (fixErr) {
+            console.error('Failed to fix missing role:', fixErr);
+          }
         }
       }
 

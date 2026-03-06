@@ -80,7 +80,17 @@ export function AdminDashboard() {
       });
     } catch (err) {
       console.error('Fetch error:', err);
-      setError('Failed to load data. Please check your connection.');
+      // Use mock data on error
+      setDoctors(MOCK_ADMIN_DOCTORS);
+      setReceptionists(MOCK_ADMIN_RECEPTIONISTS);
+      setPatients(MOCK_ADMIN_PATIENTS);
+      setStats({
+        totalDoctors: MOCK_ADMIN_DOCTORS.length,
+        totalReceptionists: MOCK_ADMIN_RECEPTIONISTS.length,
+        totalPatients: MOCK_ADMIN_PATIENTS.length,
+        totalRevenue: MOCK_ADMIN_PATIENTS.length * 150,
+      });
+      setError('Firestore se data load nahi ho saka. Demo data show kiya ja raha hai.');
     } finally {
       setLoading(false);
     }
