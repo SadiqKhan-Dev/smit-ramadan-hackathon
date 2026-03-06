@@ -165,6 +165,7 @@ export function AdminDashboard() {
         email: formData.get('email') || '',
         phone: formData.get('phone') || '',
         disease: formData.get('disease') || '',
+        bloodType: formData.get('bloodType') || '',
         role: 'patient',
         status: formData.get('status') || 'active',
         createdAt: new Date().toISOString(),
@@ -186,6 +187,7 @@ export function AdminDashboard() {
     try {
       await updateDoc(doc(db, 'users', editingPatient.id), {
         disease: formData.get('disease') || editingPatient.disease || '',
+        bloodType: formData.get('bloodType') || editingPatient.bloodType || '',
         status: formData.get('status') || editingPatient.status || 'active',
       });
       setShowEditPatientModal(false);
@@ -334,12 +336,34 @@ export function AdminDashboard() {
             <Input name="phone" label="Phone" placeholder="+92 300 0000000" />
           </div>
           <Input name="disease" label="Disease / Condition" placeholder="e.g. Diabetes, Fever, Flu" required />
-          <Select name="status" label="Status">
-            <option value="active">Active</option>
-            <option value="critical">Critical</option>
-            <option value="recovered">Recovered</option>
-            <option value="inactive">Inactive</option>
-          </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              name="bloodType"
+              label="Blood Type"
+              placeholder="Select blood type"
+              options={[
+                { value: 'A+', label: 'A+' },
+                { value: 'A-', label: 'A-' },
+                { value: 'B+', label: 'B+' },
+                { value: 'B-', label: 'B-' },
+                { value: 'AB+', label: 'AB+' },
+                { value: 'AB-', label: 'AB-' },
+                { value: 'O+', label: 'O+' },
+                { value: 'O-', label: 'O-' },
+              ]}
+            />
+            <Select
+              name="status"
+              label="Status"
+              placeholder="Select status"
+              options={[
+                { value: 'active', label: 'Active' },
+                { value: 'critical', label: 'Critical' },
+                { value: 'recovered', label: 'Recovered' },
+                { value: 'inactive', label: 'Inactive' },
+              ]}
+            />
+          </div>
         </div>
       </ModalForm>
 
@@ -363,12 +387,36 @@ export function AdminDashboard() {
             placeholder="e.g. Diabetes, Fever"
             defaultValue={editingPatient?.disease || ''}
           />
-          <Select name="status" label="Status" defaultValue={editingPatient?.status || 'active'}>
-            <option value="active">Active</option>
-            <option value="critical">Critical</option>
-            <option value="recovered">Recovered</option>
-            <option value="inactive">Inactive</option>
-          </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              name="bloodType"
+              label="Blood Type"
+              placeholder="Select blood type"
+              defaultValue={editingPatient?.bloodType || ''}
+              options={[
+                { value: 'A+', label: 'A+' },
+                { value: 'A-', label: 'A-' },
+                { value: 'B+', label: 'B+' },
+                { value: 'B-', label: 'B-' },
+                { value: 'AB+', label: 'AB+' },
+                { value: 'AB-', label: 'AB-' },
+                { value: 'O+', label: 'O+' },
+                { value: 'O-', label: 'O-' },
+              ]}
+            />
+            <Select
+              name="status"
+              label="Status"
+              placeholder="Select status"
+              defaultValue={editingPatient?.status || 'active'}
+              options={[
+                { value: 'active', label: 'Active' },
+                { value: 'critical', label: 'Critical' },
+                { value: 'recovered', label: 'Recovered' },
+                { value: 'inactive', label: 'Inactive' },
+              ]}
+            />
+          </div>
         </div>
       </ModalForm>
 
@@ -594,6 +642,9 @@ function PatientManagement({ patients, onAdd, onEdit, onDelete }) {
       )
     },
     { key: 'phone', header: 'Phone', render: (v) => v || '-' },
+    { key: 'bloodType', header: 'Blood Type', render: (v) => v ? (
+      <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded-full text-xs font-bold">{v}</span>
+    ) : <span className="text-gray-400 text-xs">-</span> },
     { key: 'disease', header: 'Disease', render: (v) => v ? (
       <span className="px-2 py-0.5 bg-orange-50 text-orange-700 rounded-full text-xs font-medium">{v}</span>
     ) : <span className="text-gray-400 text-xs">Not set</span> },
