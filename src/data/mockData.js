@@ -456,3 +456,117 @@ export const MOCK_PRESCRIPTIONS = [
 export const MOCK_ADMIN_DOCTORS       = MOCK_DOCTORS;
 export const MOCK_ADMIN_RECEPTIONISTS = MOCK_RECEPTIONISTS;
 export const MOCK_ADMIN_PATIENTS      = MOCK_PATIENTS_LIST;
+
+/* ══════════════════════════════════════════════════════════════════
+   DOCTOR DASHBOARD MOCK DATA
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── DOCTOR: MY PATIENTS (25) ────────────────────────────────────── */
+export const MOCK_DOCTOR_PATIENTS = [
+  { id: 'DP001', name: 'Muhammad Ali',      age: 45, gender: 'Male',   phone: '0300-1111001', email: 'muhammadali@gmail.com',    bloodType: 'B+',  disease: 'Hypertension',          status: 'active',    lastVisit: yesterday },
+  { id: 'DP002', name: 'Fatima Bibi',       age: 32, gender: 'Female', phone: '0300-1111002', email: 'fatimabibi@gmail.com',     bloodType: 'A+',  disease: 'Diabetes Type 2',       status: 'active',    lastVisit: today     },
+  { id: 'DP003', name: 'Ahmed Hassan',      age: 58, gender: 'Male',   phone: '0300-1111003', email: 'ahmedhassan@gmail.com',    bloodType: 'O+',  disease: 'Cardiac Arrhythmia',    status: 'critical',  lastVisit: today     },
+  { id: 'DP004', name: 'Ayesha Noor',       age: 28, gender: 'Female', phone: '0300-1111004', email: 'ayshanoor@gmail.com',      bloodType: 'AB+', disease: 'Migraine',              status: 'active',    lastVisit: yesterday },
+  { id: 'DP005', name: 'Usman Tariq',       age: 52, gender: 'Male',   phone: '0300-1111005', email: 'usmantariq@gmail.com',     bloodType: 'A-',  disease: 'Rheumatoid Arthritis',  status: 'active',    lastVisit: tomorrow  },
+  { id: 'DP006', name: 'Sadia Perveen',     age: 38, gender: 'Female', phone: '0300-1111006', email: 'sadiaperveen@gmail.com',   bloodType: 'B-',  disease: 'Thyroid Disorder',      status: 'active',    lastVisit: yesterday },
+  { id: 'DP007', name: 'Bilal Qureshi',     age: 41, gender: 'Male',   phone: '0300-1111007', email: 'bilalq@gmail.com',         bloodType: 'O-',  disease: 'Liver Cirrhosis',       status: 'critical',  lastVisit: today     },
+  { id: 'DP008', name: 'Hina Malik',        age: 25, gender: 'Female', phone: '0300-1111008', email: 'hinamalik@gmail.com',      bloodType: 'A+',  disease: 'Anxiety Disorder',      status: 'active',    lastVisit: nextWeek  },
+  { id: 'DP009', name: 'Tariq Mahmood',     age: 63, gender: 'Male',   phone: '0300-1111009', email: 'tariqm@gmail.com',         bloodType: 'B+',  disease: 'COPD',                  status: 'active',    lastVisit: yesterday },
+  { id: 'DP010', name: 'Zainab Hussain',    age: 35, gender: 'Female', phone: '0300-1111010', email: 'zainabh@gmail.com',        bloodType: 'AB-', disease: 'Glaucoma',              status: 'recovered', lastVisit: yesterday },
+  { id: 'DP011', name: 'Kamran Sheikh',     age: 47, gender: 'Male',   phone: '0300-1111011', email: 'kamrans@gmail.com',        bloodType: 'O+',  disease: 'Peptic Ulcer',          status: 'active',    lastVisit: today     },
+  { id: 'DP012', name: 'Mariam Akhtar',     age: 30, gender: 'Female', phone: '0300-1111012', email: 'mariama@gmail.com',        bloodType: 'A+',  disease: 'Hypothyroidism',        status: 'active',    lastVisit: tomorrow  },
+  { id: 'DP013', name: 'Faisal Butt',       age: 55, gender: 'Male',   phone: '0300-1111013', email: 'faisalb@gmail.com',        bloodType: 'B+',  disease: 'Asthma',                status: 'active',    lastVisit: yesterday },
+  { id: 'DP014', name: 'Nadia Javed',       age: 42, gender: 'Female', phone: '0300-1111014', email: 'nadiaj@gmail.com',         bloodType: 'O+',  disease: 'Kidney Stones',         status: 'recovered', lastVisit: today     },
+  { id: 'DP015', name: 'Asad Iqbal',        age: 67, gender: 'Male',   phone: '0300-1111015', email: 'asadi@gmail.com',          bloodType: 'A-',  disease: 'Heart Failure',         status: 'critical',  lastVisit: today     },
+  { id: 'DP016', name: 'Sara Kazmi',        age: 29, gender: 'Female', phone: '0300-1111016', email: 'sarakaz@gmail.com',        bloodType: 'B+',  disease: 'Anemia',                status: 'active',    lastVisit: yesterday },
+  { id: 'DP017', name: 'Hamza Saeed',       age: 36, gender: 'Male',   phone: '0300-1111017', email: 'hamzas@gmail.com',         bloodType: 'AB+', disease: 'Gout',                  status: 'active',    lastVisit: tomorrow  },
+  { id: 'DP018', name: 'Rabia Chaudhry',    age: 50, gender: 'Female', phone: '0300-1111018', email: 'rabiac@gmail.com',         bloodType: 'O+',  disease: 'Osteoporosis',          status: 'active',    lastVisit: yesterday },
+  { id: 'DP019', name: 'Zubair Ahmad',      age: 44, gender: 'Male',   phone: '0300-1111019', email: 'zubaira@gmail.com',        bloodType: 'A+',  disease: 'Appendicitis',          status: 'recovered', lastVisit: yesterday },
+  { id: 'DP020', name: 'Amna Siddiqui',     age: 27, gender: 'Female', phone: '0300-1111020', email: 'amnas@gmail.com',          bloodType: 'B-',  disease: 'Polycystic Ovary',      status: 'active',    lastVisit: today     },
+  { id: 'DP021', name: 'Shahid Latif',      age: 60, gender: 'Male',   phone: '0300-1111021', email: 'shahidl@gmail.com',        bloodType: 'O-',  disease: 'Prostate Cancer',       status: 'critical',  lastVisit: today     },
+  { id: 'DP022', name: 'Lubna Riaz',        age: 33, gender: 'Female', phone: '0300-1111022', email: 'lubnar@gmail.com',         bloodType: 'A+',  disease: 'Eczema',                status: 'active',    lastVisit: tomorrow  },
+  { id: 'DP023', name: 'Omer Gillani',      age: 48, gender: 'Male',   phone: '0300-1111023', email: 'omerg@gmail.com',          bloodType: 'B+',  disease: 'Sleep Apnea',           status: 'active',    lastVisit: yesterday },
+  { id: 'DP024', name: 'Shumaila Baig',     age: 39, gender: 'Female', phone: '0300-1111024', email: 'shumailab@gmail.com',      bloodType: 'AB+', disease: 'Breast Cancer',         status: 'active',    lastVisit: today     },
+  { id: 'DP025', name: 'Rizwan Nawaz',      age: 54, gender: 'Male',   phone: '0300-1111025', email: 'rizwann@gmail.com',        bloodType: 'O+',  disease: 'Spinal Stenosis',       status: 'active',    lastVisit: yesterday },
+];
+
+/* ── DOCTOR: APPOINTMENTS (25) ───────────────────────────────────── */
+export const MOCK_DOCTOR_APPOINTMENTS = [
+  { id: 'DA001', patientName: 'Muhammad Ali',   patientId: 'DP001', date: today,     time: '09:00 AM', type: 'Follow-up',    status: 'scheduled',   notes: 'BP monitoring, review medication' },
+  { id: 'DA002', patientName: 'Fatima Bibi',    patientId: 'DP002', date: today,     time: '09:45 AM', type: 'General',      status: 'in-progress', notes: 'HbA1c results review' },
+  { id: 'DA003', patientName: 'Ahmed Hassan',   patientId: 'DP003', date: today,     time: '10:30 AM', type: 'Emergency',    status: 'completed',   notes: 'ECG and cardiac monitoring' },
+  { id: 'DA004', patientName: 'Ayesha Noor',    patientId: 'DP004', date: today,     time: '11:15 AM', type: 'Consultation', status: 'scheduled',   notes: 'Migraine trigger discussion' },
+  { id: 'DA005', patientName: 'Usman Tariq',    patientId: 'DP005', date: today,     time: '12:00 PM', type: 'Follow-up',    status: 'scheduled',   notes: 'Joint pain assessment' },
+  { id: 'DA006', patientName: 'Sadia Perveen',  patientId: 'DP006', date: today,     time: '02:00 PM', type: 'General',      status: 'scheduled',   notes: 'TSH levels review' },
+  { id: 'DA007', patientName: 'Bilal Qureshi',  patientId: 'DP007', date: today,     time: '03:00 PM', type: 'Follow-up',    status: 'scheduled',   notes: 'LFT results, diet counseling' },
+  { id: 'DA008', patientName: 'Hina Malik',     patientId: 'DP008', date: yesterday, time: '09:00 AM', type: 'Consultation', status: 'completed',   notes: 'Anxiety management session' },
+  { id: 'DA009', patientName: 'Tariq Mahmood',  patientId: 'DP009', date: yesterday, time: '10:00 AM', type: 'Follow-up',    status: 'completed',   notes: 'Pulmonary function test' },
+  { id: 'DA010', patientName: 'Zainab Hussain', patientId: 'DP010', date: yesterday, time: '11:00 AM', type: 'General',      status: 'completed',   notes: 'Eye pressure check' },
+  { id: 'DA011', patientName: 'Kamran Sheikh',  patientId: 'DP011', date: yesterday, time: '02:30 PM', type: 'Follow-up',    status: 'completed',   notes: 'Endoscopy results' },
+  { id: 'DA012', patientName: 'Mariam Akhtar',  patientId: 'DP012', date: yesterday, time: '03:30 PM', type: 'General',      status: 'cancelled',   notes: 'Patient cancelled - rescheduled' },
+  { id: 'DA013', patientName: 'Faisal Butt',    patientId: 'DP013', date: tomorrow,  time: '09:00 AM', type: 'Follow-up',    status: 'scheduled',   notes: 'Spirometry test, inhaler review' },
+  { id: 'DA014', patientName: 'Nadia Javed',    patientId: 'DP014', date: tomorrow,  time: '10:00 AM', type: 'General',      status: 'scheduled',   notes: 'Ultrasound kidney report' },
+  { id: 'DA015', patientName: 'Asad Iqbal',     patientId: 'DP015', date: tomorrow,  time: '11:00 AM', type: 'Emergency',    status: 'scheduled',   notes: 'Echo cardiogram urgent' },
+  { id: 'DA016', patientName: 'Sara Kazmi',     patientId: 'DP016', date: tomorrow,  time: '12:00 PM', type: 'Consultation', status: 'scheduled',   notes: 'Iron panel, B12 levels' },
+  { id: 'DA017', patientName: 'Hamza Saeed',    patientId: 'DP017', date: tomorrow,  time: '02:00 PM', type: 'Follow-up',    status: 'scheduled',   notes: 'Uric acid diet review' },
+  { id: 'DA018', patientName: 'Rabia Chaudhry', patientId: 'DP018', date: nextWeek,  time: '09:30 AM', type: 'General',      status: 'scheduled',   notes: 'Bone density scan review' },
+  { id: 'DA019', patientName: 'Zubair Ahmad',   patientId: 'DP019', date: nextWeek,  time: '10:30 AM', type: 'Follow-up',    status: 'scheduled',   notes: 'Post-op appendix check' },
+  { id: 'DA020', patientName: 'Amna Siddiqui',  patientId: 'DP020', date: nextWeek,  time: '11:30 AM', type: 'Consultation', status: 'scheduled',   notes: 'Hormonal panel results' },
+  { id: 'DA021', patientName: 'Shahid Latif',   patientId: 'DP021', date: nextWeek,  time: '01:00 PM', type: 'Follow-up',    status: 'scheduled',   notes: 'PSA levels, oncology update' },
+  { id: 'DA022', patientName: 'Lubna Riaz',     patientId: 'DP022', date: nextWeek,  time: '02:00 PM', type: 'General',      status: 'scheduled',   notes: 'Skin patch test results' },
+  { id: 'DA023', patientName: 'Omer Gillani',   patientId: 'DP023', date: nextWeek,  time: '03:00 PM', type: 'Follow-up',    status: 'scheduled',   notes: 'Sleep study report review' },
+  { id: 'DA024', patientName: 'Shumaila Baig',  patientId: 'DP024', date: nextWeek,  time: '03:30 PM', type: 'Consultation', status: 'scheduled',   notes: 'Chemo session 3 review' },
+  { id: 'DA025', patientName: 'Rizwan Nawaz',   patientId: 'DP025', date: nextWeek,  time: '04:00 PM', type: 'Follow-up',    status: 'scheduled',   notes: 'MRI spine report' },
+];
+
+/* ── DOCTOR: PRESCRIPTIONS (22) ──────────────────────────────────── */
+export const MOCK_DOCTOR_PRESCRIPTIONS = [
+  { id: 'RD001', patientName: 'Muhammad Ali',   patientId: 'DP001', date: today,     diagnosis: 'Hypertension',          medicines: 'Amlodipine 5mg - Once daily\nLosartan 50mg - Twice daily\nAspirin 75mg - Once daily',           notes: 'Reduce salt. Monitor BP daily.',        followUp: tomorrow  },
+  { id: 'RD002', patientName: 'Fatima Bibi',    patientId: 'DP002', date: today,     diagnosis: 'Diabetes Type 2',        medicines: 'Metformin 500mg - Twice daily\nGlimepiride 2mg - Once daily',                                  notes: 'Low-carb diet. Check sugar daily.',     followUp: nextWeek  },
+  { id: 'RD003', patientName: 'Ahmed Hassan',   patientId: 'DP003', date: today,     diagnosis: 'Cardiac Arrhythmia',     medicines: 'Amiodarone 200mg - Once daily\nAspirin 75mg - Once daily\nBisoprolol 5mg - Once daily',        notes: 'No strenuous activity. ECG in 2 wks.',  followUp: tomorrow  },
+  { id: 'RD004', patientName: 'Ayesha Noor',    patientId: 'DP004', date: yesterday, diagnosis: 'Migraine',               medicines: 'Sumatriptan 50mg - As needed\nAmitriptyline 10mg - At bedtime\nIbuprofen 400mg - After meals',  notes: 'Avoid triggers. Dark room rest.',        followUp: nextWeek  },
+  { id: 'RD005', patientName: 'Usman Tariq',    patientId: 'DP005', date: yesterday, diagnosis: 'Rheumatoid Arthritis',   medicines: 'Methotrexate 10mg - Once weekly\nFolic Acid 5mg - Once daily\nPrednisolone 5mg - Once daily',   notes: 'Avoid NSAIDs on MTX day. LFTs monthly.',followUp: nextWeek  },
+  { id: 'RD006', patientName: 'Sadia Perveen',  patientId: 'DP006', date: yesterday, diagnosis: 'Hypothyroidism',         medicines: 'Levothyroxine 50mcg - Before breakfast\nVitamin D 1000IU - Once daily',                        notes: 'Take on empty stomach. TSH in 6 wks.',  followUp: nextWeek  },
+  { id: 'RD007', patientName: 'Bilal Qureshi',  patientId: 'DP007', date: yesterday, diagnosis: 'Liver Cirrhosis',        medicines: 'Lactulose 15ml - Twice daily\nSpironolactone 25mg - Once daily\nPropranolol 20mg - Twice daily', notes: 'Avoid alcohol. Low-sodium diet.',        followUp: tomorrow  },
+  { id: 'RD008', patientName: 'Hina Malik',     patientId: 'DP008', date: yesterday, diagnosis: 'Anxiety Disorder',       medicines: 'Sertraline 50mg - Once daily\nClonazepam 0.5mg - At bedtime',                                   notes: 'CBT sessions recommended. No alcohol.',  followUp: nextWeek  },
+  { id: 'RD009', patientName: 'Tariq Mahmood',  patientId: 'DP009', date: yesterday, diagnosis: 'COPD',                   medicines: 'Tiotropium Inhaler - Once daily\nSalbutamol Inhaler - As needed\nPrednisolone 5mg - Once daily',  notes: 'Quit smoking. Pulmonology follow-up.',  followUp: nextWeek  },
+  { id: 'RD010', patientName: 'Zainab Hussain', patientId: 'DP010', date: yesterday, diagnosis: 'Glaucoma',               medicines: 'Timolol Eye Drops 0.5% - Twice daily\nLatanoprost 0.005% - At bedtime',                        notes: 'Eye pressure check every 3 months.',    followUp: nextWeek  },
+  { id: 'RD011', patientName: 'Kamran Sheikh',  patientId: 'DP011', date: yesterday, diagnosis: 'Peptic Ulcer',           medicines: 'Omeprazole 20mg - Before breakfast\nClarithromycin 500mg - Twice daily\nAmoxicillin 1g - Twice daily', notes: 'Complete antibiotic course.',       followUp: nextWeek  },
+  { id: 'RD012', patientName: 'Faisal Butt',    patientId: 'DP013', date: yesterday, diagnosis: 'Asthma',                 medicines: 'Fluticasone Inhaler - Twice daily\nSalbutamol Inhaler - As needed\nMontelukast 10mg - At bedtime', notes: 'Avoid dust/allergens.',             followUp: nextWeek  },
+  { id: 'RD013', patientName: 'Sara Kazmi',     patientId: 'DP016', date: yesterday, diagnosis: 'Iron Deficiency Anemia', medicines: 'Ferrous Sulfate 200mg - Twice daily\nVitamin C 500mg - Once daily\nFolic Acid 5mg - Once daily', notes: 'Take with orange juice.',            followUp: nextWeek  },
+  { id: 'RD014', patientName: 'Hamza Saeed',    patientId: 'DP017', date: yesterday, diagnosis: 'Gout',                   medicines: 'Allopurinol 100mg - Once daily\nColchicine 0.5mg - Twice daily\nEtoricoxib 60mg - Once daily',   notes: 'Low purine diet. Hydrate well.',        followUp: nextWeek  },
+  { id: 'RD015', patientName: 'Rabia Chaudhry', patientId: 'DP018', date: yesterday, diagnosis: 'Osteoporosis',           medicines: 'Alendronate 70mg - Once weekly\nCalcium 500mg - Twice daily\nVitamin D3 1000IU - Once daily',    notes: 'Weight-bearing exercise daily.',        followUp: nextWeek  },
+  { id: 'RD016', patientName: 'Amna Siddiqui',  patientId: 'DP020', date: yesterday, diagnosis: 'PCOS',                   medicines: 'Metformin 500mg - Once daily\nClomiphene 50mg - Days 3-7\nVitamin D 2000IU - Once daily',        notes: 'Weight management. Hormonal panel.',    followUp: nextWeek  },
+  { id: 'RD017', patientName: 'Lubna Riaz',     patientId: 'DP022', date: yesterday, diagnosis: 'Eczema',                 medicines: 'Betamethasone Cream 0.1% - Twice daily\nCetirizine 10mg - At bedtime\nMoisturizer - 3x daily',   notes: 'Avoid harsh soaps. Cotton clothing.',   followUp: nextWeek  },
+  { id: 'RD018', patientName: 'Omer Gillani',   patientId: 'DP023', date: yesterday, diagnosis: 'Sleep Apnea',            medicines: 'Modafinil 100mg - Morning\nMelatonin 3mg - At bedtime',                                          notes: 'CPAP machine recommended.',             followUp: nextWeek  },
+  { id: 'RD019', patientName: 'Rizwan Nawaz',   patientId: 'DP025', date: yesterday, diagnosis: 'Spinal Stenosis',        medicines: 'Gabapentin 300mg - Thrice daily\nIbuprofen 400mg - After meals\nMethylprednisolone 4mg - Twice daily', notes: 'Physiotherapy 3x week.',          followUp: nextWeek  },
+  { id: 'RD020', patientName: 'Asad Iqbal',     patientId: 'DP015', date: yesterday, diagnosis: 'Heart Failure',          medicines: 'Furosemide 40mg - Once daily\nEnalapril 5mg - Twice daily\nCarvedilol 6.25mg - Twice daily',     notes: 'Daily weight monitoring. Low salt.',    followUp: tomorrow  },
+  { id: 'RD021', patientName: 'Nadia Javed',    patientId: 'DP014', date: yesterday, diagnosis: 'Kidney Stones',          medicines: 'Tamsulosin 0.4mg - At bedtime\nCitrate K 10mEq - Twice daily\nPanadol 500mg - As needed',        notes: 'Drink 3L water daily.',                 followUp: nextWeek  },
+  { id: 'RD022', patientName: 'Zubair Ahmad',   patientId: 'DP019', date: yesterday, diagnosis: 'Post-Op Recovery',       medicines: 'Amoxicillin 500mg - Thrice daily\nPanadol 500mg - 4x daily\nOmeprazole 20mg - Twice daily',       notes: 'Complete antibiotics. No heavy lifting.',followUp: nextWeek  },
+];
+
+/* ── DOCTOR: DOCUMENTS (22) ──────────────────────────────────────── */
+export const MOCK_DOCTOR_DOCUMENTS = [
+  { id: 'DD001', name: 'Muhammad Ali - ECG Report',         type: 'ECG',               patientName: 'Muhammad Ali',   patientId: 'DP001', date: today,     size: '2.4 MB',  status: 'reviewed'  },
+  { id: 'DD002', name: 'Fatima Bibi - HbA1c Results',       type: 'Lab Report',        patientName: 'Fatima Bibi',    patientId: 'DP002', date: today,     size: '1.2 MB',  status: 'reviewed'  },
+  { id: 'DD003', name: 'Ahmed Hassan - Echocardiogram',     type: 'Ultrasound',        patientName: 'Ahmed Hassan',   patientId: 'DP003', date: today,     size: '5.8 MB',  status: 'pending'   },
+  { id: 'DD004', name: 'Ayesha Noor - MRI Brain',           type: 'MRI',               patientName: 'Ayesha Noor',    patientId: 'DP004', date: yesterday, size: '12.4 MB', status: 'reviewed'  },
+  { id: 'DD005', name: 'Usman Tariq - Joint X-Ray',         type: 'X-Ray',             patientName: 'Usman Tariq',    patientId: 'DP005', date: yesterday, size: '3.6 MB',  status: 'reviewed'  },
+  { id: 'DD006', name: 'Sadia Perveen - TSH Panel',         type: 'Lab Report',        patientName: 'Sadia Perveen',  patientId: 'DP006', date: yesterday, size: '0.8 MB',  status: 'reviewed'  },
+  { id: 'DD007', name: 'Bilal Qureshi - Liver Biopsy',      type: 'Biopsy Report',     patientName: 'Bilal Qureshi',  patientId: 'DP007', date: yesterday, size: '4.2 MB',  status: 'reviewed'  },
+  { id: 'DD008', name: 'Hina Malik - Psych Evaluation',     type: 'Evaluation',        patientName: 'Hina Malik',     patientId: 'DP008', date: yesterday, size: '1.5 MB',  status: 'reviewed'  },
+  { id: 'DD009', name: 'Tariq Mahmood - Spirometry',        type: 'Lab Report',        patientName: 'Tariq Mahmood',  patientId: 'DP009', date: yesterday, size: '0.9 MB',  status: 'reviewed'  },
+  { id: 'DD010', name: 'Zainab Hussain - Visual Field Test',type: 'Eye Test',          patientName: 'Zainab Hussain', patientId: 'DP010', date: yesterday, size: '2.1 MB',  status: 'reviewed'  },
+  { id: 'DD011', name: 'Kamran Sheikh - Endoscopy',         type: 'Endoscopy Report',  patientName: 'Kamran Sheikh',  patientId: 'DP011', date: yesterday, size: '6.3 MB',  status: 'pending'   },
+  { id: 'DD012', name: 'Mariam Akhtar - Thyroid Scan',      type: 'Ultrasound',        patientName: 'Mariam Akhtar',  patientId: 'DP012', date: yesterday, size: '3.2 MB',  status: 'reviewed'  },
+  { id: 'DD013', name: 'Faisal Butt - Chest X-Ray',         type: 'X-Ray',             patientName: 'Faisal Butt',    patientId: 'DP013', date: yesterday, size: '2.8 MB',  status: 'reviewed'  },
+  { id: 'DD014', name: 'Nadia Javed - Kidney Ultrasound',   type: 'Ultrasound',        patientName: 'Nadia Javed',    patientId: 'DP014', date: yesterday, size: '4.0 MB',  status: 'reviewed'  },
+  { id: 'DD015', name: 'Asad Iqbal - Cardiac MRI',          type: 'MRI',               patientName: 'Asad Iqbal',     patientId: 'DP015', date: today,     size: '15.2 MB', status: 'pending'   },
+  { id: 'DD016', name: 'Sara Kazmi - CBC Report',           type: 'Blood Test',        patientName: 'Sara Kazmi',     patientId: 'DP016', date: yesterday, size: '0.6 MB',  status: 'reviewed'  },
+  { id: 'DD017', name: 'Hamza Saeed - Uric Acid Panel',     type: 'Lab Report',        patientName: 'Hamza Saeed',    patientId: 'DP017', date: yesterday, size: '0.7 MB',  status: 'reviewed'  },
+  { id: 'DD018', name: 'Rabia Chaudhry - DEXA Scan',        type: 'Bone Density Scan', patientName: 'Rabia Chaudhry', patientId: 'DP018', date: yesterday, size: '3.5 MB',  status: 'reviewed'  },
+  { id: 'DD019', name: 'Zubair Ahmad - Post-Op Report',     type: 'Discharge Summary', patientName: 'Zubair Ahmad',   patientId: 'DP019', date: yesterday, size: '1.1 MB',  status: 'reviewed'  },
+  { id: 'DD020', name: 'Amna Siddiqui - Hormonal Panel',    type: 'Lab Report',        patientName: 'Amna Siddiqui',  patientId: 'DP020', date: yesterday, size: '0.9 MB',  status: 'reviewed'  },
+  { id: 'DD021', name: 'Shahid Latif - PSA Report',         type: 'Lab Report',        patientName: 'Shahid Latif',   patientId: 'DP021', date: today,     size: '0.5 MB',  status: 'pending'   },
+  { id: 'DD022', name: 'Shumaila Baig - Mammogram',         type: 'X-Ray',             patientName: 'Shumaila Baig',  patientId: 'DP024', date: yesterday, size: '8.1 MB',  status: 'reviewed'  },
+];
