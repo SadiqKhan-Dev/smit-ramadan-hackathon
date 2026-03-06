@@ -4,11 +4,12 @@ import { MOCK_ADMIN_DOCTORS, MOCK_ADMIN_RECEPTIONISTS, MOCK_ADMIN_PATIENTS } fro
 import { db } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { createUserAccount } from '../../utils/createUserAccount';
 import {
   Stethoscope, Users, UserCog, DollarSign,
   Plus, Edit, Trash2, TrendingUp, TrendingDown,
   Activity, FileText, Bell, Shield, Palette, Globe,
-  CheckCircle, AlertTriangle, Clock, Heart
+  CheckCircle, AlertTriangle, Clock, Heart, Key, X, Copy
 } from 'lucide-react';
 import { Sidebar } from '../../components/layout/Sidebar';
 import { Card, CardContent, StatCard } from '../../components/ui/Card';
@@ -50,6 +51,12 @@ export function AdminDashboard() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
+
+  // Account creation modal state
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [accountTarget, setAccountTarget] = useState(null); // { type: 'doctor'|'receptionist'|'patient', data: row }
+  const [accountLoading, setAccountLoading] = useState(false);
+  const [accountResult, setAccountResult] = useState(null); // { success, email, password } | { success: false, error }
 
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -115,6 +122,64 @@ export function AdminDashboard() {
     promise.catch(err => {
       console.warn('Firestore sync failed (offline ya rules issue):', err.message);
     });
+  }
+
+  // Open account-creation modal for a row
+  function openAccountModal(type, data) {
+    setAccountTarget({ type, data });
+    setAccountResult(null);
+    setShowAccountModal(true);
+  }
+
+  // Create Firebase Auth account for a staff/patient member
+  async function handleCreateAccount(e) {
+    e.preventDefault();
+    if (!accountTarget) return;
+
+    const formData = new FormData(e.target);
+    const email    = formData.get('email');
+    const password = formData.get('password');
+    const confirm  = formData.get('confirmPassword');
+
+    if (password !== confirm) {
+      setAccountResult({ success: false, error: 'Passwords match nahi ho rahe' });
+      return;
+    }
+
+    setAccountLoading(true);
+    setAccountResult(null);
+
+    const { type, data } = accountTarget;
+    const result = await createUserAccount({
+      name:      data.name,
+      email,
+      password,
+      role:      type,
+      specialty: data.specialty || null,
+      phone:     data.phone     || null,
+    });
+
+    setAccountLoading(false);
+
+    if (result.success) {
+      // Mark the row as having an account in local state
+      if (type === 'doctor') {
+        setDoctors(prev => prev.map(d => d.id === data.id ? { ...d, hasAccount: true, email } : d));
+      } else if (type === 'receptionist') {
+        setReceptionists(prev => prev.map(r => r.id === data.id ? { ...r, hasAccount: true, email } : r));
+      } else {
+        setPatients(prev => prev.map(p => p.id === data.id ? { ...p, hasAccount: true, email } : p));
+      }
+      setAccountResult({ success: true, email, password });
+    } else {
+      setAccountResult({ success: false, error: result.error });
+    }
+  }
+
+  function closeAccountModal() {
+    setShowAccountModal(false);
+    setAccountTarget(null);
+    setAccountResult(null);
   }
 
   // Add Doctor — optimistic update, no await
@@ -291,6 +356,7 @@ export function AdminDashboard() {
             onAdd={() => setShowDoctorModal(true)}
             onEdit={(doctor) => { setEditingDoctor(doctor); setShowEditDoctorModal(true); }}
             onDelete={(doctor) => { setDeleteTarget({ type: 'doctor', data: doctor }); setShowConfirmDialog(true); }}
+            onCreateAccount={(doctor) => openAccountModal('doctor', doctor)}
           />
         );
       case 'receptionists':
@@ -300,6 +366,7 @@ export function AdminDashboard() {
             onAdd={() => setShowReceptionistModal(true)}
             onEdit={(rec) => { setEditingReceptionist(rec); setShowEditReceptionistModal(true); }}
             onDelete={(rec) => { setDeleteTarget({ type: 'receptionist', data: rec }); setShowConfirmDialog(true); }}
+            onCreateAccount={(rec) => openAccountModal('receptionist', rec)}
           />
         );
       case 'patients':
@@ -309,6 +376,7 @@ export function AdminDashboard() {
             onAdd={() => setShowPatientModal(true)}
             onEdit={(patient) => { setEditingPatient(patient); setShowEditPatientModal(true); }}
             onDelete={(patient) => { setDeleteTarget({ type: 'patient', data: patient }); setShowConfirmDialog(true); }}
+            onCreateAccount={(patient) => openAccountModal('patient', patient)}
           />
         );
       case 'analytics':
@@ -571,6 +639,125 @@ export function AdminDashboard() {
         </div>
       </ModalForm>
 
+      {/* ── Account Creation Modal ───────────────────────────────────── */}
+      {showAccountModal && accountTarget && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${accountTarget.type === 'doctor' ? 'bg-blue-100' : accountTarget.type === 'receptionist' ? 'bg-green-100' : 'bg-purple-100'}`}>
+                  <Key className={`w-5 h-5 ${accountTarget.type === 'doctor' ? 'text-blue-600' : accountTarget.type === 'receptionist' ? 'text-green-600' : 'text-purple-600'}`} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Account Banao</h2>
+                  <p className="text-xs text-gray-500">Login credentials set karo</p>
+                </div>
+              </div>
+              <button onClick={closeAccountModal} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {accountResult?.success ? (
+              /* ── Success State ── */
+              <div className="p-6 space-y-4">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <p className="font-semibold text-green-800">Account ban gaya! 🎉</p>
+                  </div>
+                  <p className="text-xs text-green-700 mb-3">
+                    Yeh credentials <strong>{accountTarget.data.name}</strong> ko share karo taa ke woh login kar sakain.
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center bg-white rounded-lg px-3 py-2.5 border border-green-200">
+                      <span className="text-xs text-gray-500 font-medium">Email</span>
+                      <span className="font-mono text-sm text-gray-900">{accountResult.email}</span>
+                    </div>
+                    <div className="flex justify-between items-center bg-white rounded-lg px-3 py-2.5 border border-green-200">
+                      <span className="text-xs text-gray-500 font-medium">Password</span>
+                      <span className="font-mono text-sm text-gray-900">{accountResult.password}</span>
+                    </div>
+                    <div className="flex justify-between items-center bg-white rounded-lg px-3 py-2.5 border border-green-200">
+                      <span className="text-xs text-gray-500 font-medium">Role</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize
+                        ${accountTarget.type === 'doctor' ? 'bg-blue-100 text-blue-700' :
+                          accountTarget.type === 'receptionist' ? 'bg-green-100 text-green-700' :
+                          'bg-purple-100 text-purple-700'}`}>
+                        {accountTarget.type}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <Button variant="outline" onClick={closeAccountModal} className="w-full">
+                  Close
+                </Button>
+              </div>
+            ) : (
+              /* ── Form State ── */
+              <form onSubmit={handleCreateAccount} className="p-6 space-y-4">
+                {/* User info preview */}
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm
+                    ${accountTarget.type === 'doctor' ? 'bg-blue-500' : accountTarget.type === 'receptionist' ? 'bg-green-500' : 'bg-purple-500'}`}>
+                    {accountTarget.data.name?.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{accountTarget.data.name}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize
+                      ${accountTarget.type === 'doctor' ? 'bg-blue-100 text-blue-700' :
+                        accountTarget.type === 'receptionist' ? 'bg-green-100 text-green-700' :
+                        'bg-purple-100 text-purple-700'}`}>
+                      {accountTarget.type}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Error alert */}
+                {accountResult?.error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                    {accountResult.error}
+                  </div>
+                )}
+
+                <Input
+                  name="email"
+                  type="email"
+                  label="Email Address"
+                  defaultValue={accountTarget.data.email || ''}
+                  placeholder="email@clinic.com"
+                  required
+                />
+                <Input
+                  name="password"
+                  type="password"
+                  label="Password"
+                  placeholder="Min. 6 characters"
+                  required
+                />
+                <Input
+                  name="confirmPassword"
+                  type="password"
+                  label="Confirm Password"
+                  placeholder="Password dobara likhein"
+                  required
+                />
+
+                <div className="flex gap-3 pt-1">
+                  <Button type="button" variant="outline" onClick={closeAccountModal} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button type="submit" isLoading={accountLoading} className="flex-1" icon={Key}>
+                    {accountLoading ? 'Bana raha hai...' : 'Account Banao'}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation */}
       <ConfirmDialog
         isOpen={showConfirmDialog}
@@ -655,7 +842,7 @@ function DashboardOverview({ stats, loading, onNavigate }) {
 }
 
 // Doctor Management
-function DoctorManagement({ doctors, onAdd, onEdit, onDelete }) {
+function DoctorManagement({ doctors, onAdd, onEdit, onDelete, onCreateAccount }) {
   const columns = [
     {
       key: 'name',
@@ -702,6 +889,13 @@ function DoctorManagement({ doctors, onAdd, onEdit, onDelete }) {
           sortable
           actions={(row) => (
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => onCreateAccount(row)}
+                className={`p-1.5 rounded-lg transition-colors ${row.hasAccount ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:text-green-600 hover:bg-green-50'}`}
+                title={row.hasAccount ? 'Account already exists' : 'Create Login Account'}
+              >
+                <Key className="w-4 h-4" />
+              </button>
               <button onClick={() => onEdit(row)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
                 <Edit className="w-4 h-4" />
               </button>
@@ -717,7 +911,7 @@ function DoctorManagement({ doctors, onAdd, onEdit, onDelete }) {
 }
 
 // Receptionist Management
-function ReceptionistManagement({ receptionists, onAdd, onEdit, onDelete }) {
+function ReceptionistManagement({ receptionists, onAdd, onEdit, onDelete, onCreateAccount }) {
   const columns = [
     {
       key: 'name',
@@ -763,6 +957,13 @@ function ReceptionistManagement({ receptionists, onAdd, onEdit, onDelete }) {
           sortable
           actions={(row) => (
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => onCreateAccount(row)}
+                className={`p-1.5 rounded-lg transition-colors ${row.hasAccount ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:text-green-600 hover:bg-green-50'}`}
+                title={row.hasAccount ? 'Account already exists' : 'Create Login Account'}
+              >
+                <Key className="w-4 h-4" />
+              </button>
               <button onClick={() => onEdit(row)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
                 <Edit className="w-4 h-4" />
               </button>
@@ -778,7 +979,7 @@ function ReceptionistManagement({ receptionists, onAdd, onEdit, onDelete }) {
 }
 
 // Patient Management
-function PatientManagement({ patients, onAdd, onEdit, onDelete }) {
+function PatientManagement({ patients, onAdd, onEdit, onDelete, onCreateAccount }) {
   const statusVariant = (status) => {
     if (status === 'active') return 'success';
     if (status === 'critical') return 'danger';
@@ -845,6 +1046,13 @@ function PatientManagement({ patients, onAdd, onEdit, onDelete }) {
           sortable
           actions={(row) => (
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => onCreateAccount(row)}
+                className={`p-1.5 rounded-lg transition-colors ${row.hasAccount ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:text-green-600 hover:bg-green-50'}`}
+                title={row.hasAccount ? 'Account already exists' : 'Create Login Account'}
+              >
+                <Key className="w-4 h-4" />
+              </button>
               <button
                 onClick={() => onEdit(row)}
                 className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
