@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, setDoc, query, where } from 'firebase/firestore';
 import { MOCK_ADMIN_DOCTORS, MOCK_ADMIN_RECEPTIONISTS, MOCK_ADMIN_PATIENTS } from '../../data/mockData';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
@@ -181,22 +181,23 @@ export function AdminDashboard() {
     }
   }
 
-  // Update Patient (disease + status)
+  // Update Patient (disease + status + bloodType)
   async function handleUpdatePatient(e) {
     if (!editingPatient) return;
     const formData = new FormData(e.target);
+    const disease = formData.get('disease') || editingPatient.disease || '';
+    const bloodType = formData.get('bloodType') || editingPatient.bloodType || '';
+    const status = formData.get('status') || editingPatient.status || 'active';
     setModalLoading(true);
     try {
-      await updateDoc(doc(db, 'users', editingPatient.id), {
-        disease: formData.get('disease') || editingPatient.disease || '',
-        bloodType: formData.get('bloodType') || editingPatient.bloodType || '',
-        status: formData.get('status') || editingPatient.status || 'active',
-      });
+      // setDoc with merge works even if doc doesn't exist (unlike updateDoc)
+      await setDoc(doc(db, 'users', editingPatient.id), { disease, bloodType, status }, { merge: true });
       setShowEditPatientModal(false);
       setEditingPatient(null);
       fetchData();
     } catch (err) {
-      setError('Patient update karne mein error aya. Firestore rules check karein.');
+      console.error('Update patient error:', err);
+      setError(`Update failed: ${err.message}`);
     } finally {
       setModalLoading(false);
     }
@@ -375,8 +376,9 @@ export function AdminDashboard() {
         </div>
       </ModalForm>
 
-      {/* Edit Patient Modal */}
+      {/* Edit Patient Modal — key forces full remount on each patient so defaultValues reset */}
       <ModalForm
+        key={editingPatient?.id || 'edit-patient'}
         isOpen={showEditPatientModal}
         onClose={() => { setShowEditPatientModal(false); setEditingPatient(null); }}
         title="Update Patient Info"
