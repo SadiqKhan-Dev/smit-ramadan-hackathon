@@ -170,7 +170,7 @@ export function AdminDashboard() {
       } else {
         setPatients(prev => prev.map(p => p.id === data.id ? { ...p, hasAccount: true, email } : p));
       }
-      setAccountResult({ success: true, email, password });
+      setAccountResult({ success: true, email, password, warning: result.warning || null });
     } else {
       setAccountResult({ success: false, error: result.error });
     }
@@ -650,7 +650,7 @@ export function AdminDashboard() {
                   <Key className={`w-5 h-5 ${accountTarget.type === 'doctor' ? 'text-blue-600' : accountTarget.type === 'receptionist' ? 'text-green-600' : 'text-purple-600'}`} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Account Banao</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Create Acount</h2>
                   <p className="text-xs text-gray-500">Login credentials set karo</p>
                 </div>
               </div>
@@ -670,6 +670,11 @@ export function AdminDashboard() {
                   <p className="text-xs text-green-700 mb-3">
                     Yeh credentials <strong>{accountTarget.data.name}</strong> ko share karo taa ke woh login kar sakain.
                   </p>
+                  {accountResult.warning && (
+                    <div className="p-2 bg-yellow-50 border border-yellow-300 rounded-lg mb-2">
+                      <p className="text-xs text-yellow-800">⚠️ {accountResult.warning}</p>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <div className="flex justify-between items-center bg-white rounded-lg px-3 py-2.5 border border-green-200">
                       <span className="text-xs text-gray-500 font-medium">Email</span>
@@ -749,7 +754,7 @@ export function AdminDashboard() {
                     Cancel
                   </Button>
                   <Button type="submit" isLoading={accountLoading} className="flex-1" icon={Key}>
-                    {accountLoading ? 'Bana raha hai...' : 'Account Banao'}
+                    {accountLoading ? 'Creating Account...' : 'Create Account'}
                   </Button>
                 </div>
               </form>

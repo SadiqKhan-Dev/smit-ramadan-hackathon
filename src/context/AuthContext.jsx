@@ -6,7 +6,7 @@ import {
   onAuthStateChanged,
   updateProfile
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, getDocFromServer } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 
 const AuthContext = createContext(null);
@@ -19,21 +19,34 @@ function getRoleLocally(uid) {
   try { return localStorage.getItem(`cp_role_${uid}`); } catch (_) { return null; }
 }
 
-// Fetch role: Firestore first (with 4s timeout), localStorage fallback
+// Fetch role: Firestore first (with timeout), localStorage fallback
 async function fetchRole(uid) {
+  // Attempt 1 — force server fetch (bypasses stale cache; critical for newly created accounts)
   try {
     const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 4000)
+      setTimeout(() => reject(new Error('timeout')), 6000)
     );
-    const snap = await Promise.race([getDoc(doc(db, 'users', uid)), timeout]);
+    const snap = await Promise.race([getDocFromServer(doc(db, 'users', uid)), timeout]);
     if (snap.exists() && snap.data().role) {
-      saveRoleLocally(uid, snap.data().role); // keep cache fresh
+      saveRoleLocally(uid, snap.data().role);
       return snap.data().role;
     }
   } catch (err) {
-    console.warn('Firestore role fetch failed, using cache:', err.message);
+    console.warn('Firestore server fetch failed, trying cache:', err.message);
   }
-  return getRoleLocally(uid); // always falls back to localStorage
+
+  // Attempt 2 — try regular getDoc (may use local cache)
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (snap.exists() && snap.data().role) {
+      saveRoleLocally(uid, snap.data().role);
+      return snap.data().role;
+    }
+  } catch (err) {
+    console.warn('Firestore cache fetch failed:', err.message);
+  }
+
+  return getRoleLocally(uid); // final fallback: localStorage
 }
 
 export function AuthProvider({ children }) {
