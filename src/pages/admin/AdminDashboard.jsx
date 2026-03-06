@@ -39,7 +39,11 @@ export function AdminDashboard() {
 
   // Modal states
   const [showDoctorModal, setShowDoctorModal] = useState(false);
+  const [showEditDoctorModal, setShowEditDoctorModal] = useState(false);
+  const [editingDoctor, setEditingDoctor] = useState(null);
   const [showReceptionistModal, setShowReceptionistModal] = useState(false);
+  const [showEditReceptionistModal, setShowEditReceptionistModal] = useState(false);
+  const [editingReceptionist, setEditingReceptionist] = useState(null);
   const [showPatientModal, setShowPatientModal] = useState(false);
   const [showEditPatientModal, setShowEditPatientModal] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
@@ -169,6 +173,43 @@ export function AdminDashboard() {
     }));
   }
 
+  // Update Doctor — optimistic update
+  function handleUpdateDoctor(e) {
+    if (!editingDoctor) return;
+    const formData = new FormData(e.target);
+    const name      = formData.get('name')      || editingDoctor.name;
+    const email     = formData.get('email')     || editingDoctor.email     || '';
+    const phone     = formData.get('phone')     || editingDoctor.phone     || '';
+    const specialty = formData.get('specialty') || editingDoctor.specialty || '';
+    const status    = formData.get('status')    || editingDoctor.status    || 'active';
+    const gender    = formData.get('gender')    || editingDoctor.gender    || '';
+
+    setDoctors(prev => prev.map(d =>
+      d.id === editingDoctor.id ? { ...d, name, email, phone, specialty, status, gender } : d
+    ));
+    setShowEditDoctorModal(false);
+    setEditingDoctor(null);
+    syncFirestore(setDoc(doc(db, 'users', editingDoctor.id), { name, email, phone, specialty, status, gender }, { merge: true }));
+  }
+
+  // Update Receptionist — optimistic update
+  function handleUpdateReceptionist(e) {
+    if (!editingReceptionist) return;
+    const formData = new FormData(e.target);
+    const name   = formData.get('name')   || editingReceptionist.name;
+    const email  = formData.get('email')  || editingReceptionist.email  || '';
+    const phone  = formData.get('phone')  || editingReceptionist.phone  || '';
+    const status = formData.get('status') || editingReceptionist.status || 'active';
+    const gender = formData.get('gender') || editingReceptionist.gender || '';
+
+    setReceptionists(prev => prev.map(r =>
+      r.id === editingReceptionist.id ? { ...r, name, email, phone, status, gender } : r
+    ));
+    setShowEditReceptionistModal(false);
+    setEditingReceptionist(null);
+    syncFirestore(setDoc(doc(db, 'users', editingReceptionist.id), { name, email, phone, status, gender }, { merge: true }));
+  }
+
   // Add Patient — optimistic update
   function handleAddPatient(e) {
     const formData = new FormData(e.target);
@@ -248,6 +289,7 @@ export function AdminDashboard() {
           <DoctorManagement
             doctors={doctors}
             onAdd={() => setShowDoctorModal(true)}
+            onEdit={(doctor) => { setEditingDoctor(doctor); setShowEditDoctorModal(true); }}
             onDelete={(doctor) => { setDeleteTarget({ type: 'doctor', data: doctor }); setShowConfirmDialog(true); }}
           />
         );
@@ -256,6 +298,7 @@ export function AdminDashboard() {
           <ReceptionistManagement
             receptionists={receptionists}
             onAdd={() => setShowReceptionistModal(true)}
+            onEdit={(rec) => { setEditingReceptionist(rec); setShowEditReceptionistModal(true); }}
             onDelete={(rec) => { setDeleteTarget({ type: 'receptionist', data: rec }); setShowConfirmDialog(true); }}
           />
         );
@@ -330,7 +373,46 @@ export function AdminDashboard() {
             <Input name="email" type="email" label="Email" placeholder="doctor@clinic.com" />
             <Input name="phone" label="Phone" placeholder="+92 300 0000000" />
           </div>
-          <Input name="specialty" label="Specialty" placeholder="e.g. Cardiology, Neurology" required />
+          <div className="grid grid-cols-2 gap-4">
+            <Input name="specialty" label="Specialty" placeholder="e.g. Cardiology, Neurology" required />
+            <Select name="gender" label="Gender" placeholder="Select gender"
+              options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]} />
+          </div>
+        </div>
+      </ModalForm>
+
+      {/* Edit Doctor Modal */}
+      <ModalForm
+        key={editingDoctor?.id || 'edit-doctor'}
+        isOpen={showEditDoctorModal}
+        onClose={() => { setShowEditDoctorModal(false); setEditingDoctor(null); }}
+        title="Edit Doctor Info"
+        submitLabel="Save Changes"
+        isLoading={false}
+        onSubmit={handleUpdateDoctor}
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm font-medium text-gray-900">{editingDoctor?.name}</p>
+            <p className="text-xs text-gray-500">{editingDoctor?.specialty}</p>
+          </div>
+          <Input name="name" label="Full Name" defaultValue={editingDoctor?.name || ''} required />
+          <div className="grid grid-cols-2 gap-4">
+            <Input name="email" type="email" label="Email" defaultValue={editingDoctor?.email || ''} />
+            <Input name="phone" label="Phone" defaultValue={editingDoctor?.phone || ''} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input name="specialty" label="Specialty" defaultValue={editingDoctor?.specialty || ''} />
+            <Select name="gender" label="Gender" placeholder="Select gender"
+              defaultValue={editingDoctor?.gender || ''}
+              options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]} />
+          </div>
+          <Select name="status" label="Status" placeholder="Select status"
+            defaultValue={editingDoctor?.status || 'active'}
+            options={[
+              { value: 'active', label: 'Active' },
+              { value: 'inactive', label: 'Inactive' },
+            ]} />
         </div>
       </ModalForm>
 
@@ -348,6 +430,42 @@ export function AdminDashboard() {
           <div className="grid grid-cols-2 gap-4">
             <Input name="email" type="email" label="Email" placeholder="sara@clinic.com" />
             <Input name="phone" label="Phone" placeholder="+92 300 0000000" />
+          </div>
+          <Select name="gender" label="Gender" placeholder="Select gender"
+            options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]} />
+        </div>
+      </ModalForm>
+
+      {/* Edit Receptionist Modal */}
+      <ModalForm
+        key={editingReceptionist?.id || 'edit-receptionist'}
+        isOpen={showEditReceptionistModal}
+        onClose={() => { setShowEditReceptionistModal(false); setEditingReceptionist(null); }}
+        title="Edit Receptionist Info"
+        submitLabel="Save Changes"
+        isLoading={false}
+        onSubmit={handleUpdateReceptionist}
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm font-medium text-gray-900">{editingReceptionist?.name}</p>
+            <p className="text-xs text-gray-500">{editingReceptionist?.email}</p>
+          </div>
+          <Input name="name" label="Full Name" defaultValue={editingReceptionist?.name || ''} required />
+          <div className="grid grid-cols-2 gap-4">
+            <Input name="email" type="email" label="Email" defaultValue={editingReceptionist?.email || ''} />
+            <Input name="phone" label="Phone" defaultValue={editingReceptionist?.phone || ''} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Select name="gender" label="Gender" placeholder="Select gender"
+              defaultValue={editingReceptionist?.gender || ''}
+              options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]} />
+            <Select name="status" label="Status" placeholder="Select status"
+              defaultValue={editingReceptionist?.status || 'active'}
+              options={[
+                { value: 'active', label: 'Active' },
+                { value: 'inactive', label: 'Inactive' },
+              ]} />
           </div>
         </div>
       </ModalForm>
@@ -537,7 +655,7 @@ function DashboardOverview({ stats, loading, onNavigate }) {
 }
 
 // Doctor Management
-function DoctorManagement({ doctors, onAdd, onDelete }) {
+function DoctorManagement({ doctors, onAdd, onEdit, onDelete }) {
   const columns = [
     {
       key: 'name',
@@ -583,12 +701,14 @@ function DoctorManagement({ doctors, onAdd, onDelete }) {
           searchable
           sortable
           actions={(row) => (
-            <button
-              onClick={() => onDelete(row)}
-              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button onClick={() => onEdit(row)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                <Edit className="w-4 h-4" />
+              </button>
+              <button onClick={() => onDelete(row)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           )}
         />
       )}
@@ -597,7 +717,7 @@ function DoctorManagement({ doctors, onAdd, onDelete }) {
 }
 
 // Receptionist Management
-function ReceptionistManagement({ receptionists, onAdd, onDelete }) {
+function ReceptionistManagement({ receptionists, onAdd, onEdit, onDelete }) {
   const columns = [
     {
       key: 'name',
@@ -614,6 +734,9 @@ function ReceptionistManagement({ receptionists, onAdd, onDelete }) {
         </div>
       )
     },
+    { key: 'gender', header: 'Gender', render: (v) => v ? (
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === 'Male' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'}`}>{v}</span>
+    ) : <span className="text-gray-400 text-xs">-</span> },
     { key: 'phone', header: 'Phone', render: (v) => v || '-' },
     { key: 'status', header: 'Status', render: (value) => <StatusBadge variant={value === 'active' ? 'success' : 'default'} size="sm" dot>{value || 'active'}</StatusBadge> },
   ];
@@ -639,12 +762,14 @@ function ReceptionistManagement({ receptionists, onAdd, onDelete }) {
           searchable
           sortable
           actions={(row) => (
-            <button
-              onClick={() => onDelete(row)}
-              className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button onClick={() => onEdit(row)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                <Edit className="w-4 h-4" />
+              </button>
+              <button onClick={() => onDelete(row)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           )}
         />
       )}
