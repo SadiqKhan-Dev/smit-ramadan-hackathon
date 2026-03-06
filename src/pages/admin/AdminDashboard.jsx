@@ -106,114 +106,137 @@ export function AdminDashboard() {
     navigate('/');
   };
 
-  // Add Doctor handler
-  async function handleAddDoctor(e) {
+  // Fire-and-forget Firestore sync (never blocks UI)
+  function syncFirestore(promise) {
+    promise.catch(err => {
+      console.warn('Firestore sync failed (offline ya rules issue):', err.message);
+    });
+  }
+
+  // Add Doctor — optimistic update, no await
+  function handleAddDoctor(e) {
     const formData = new FormData(e.target);
     const name = formData.get('name');
     if (!name) return;
-    setModalLoading(true);
-    try {
-      await addDoc(collection(db, 'users'), {
-        name,
-        email: formData.get('email') || '',
-        specialty: formData.get('specialty') || '',
-        phone: formData.get('phone') || '',
-        role: 'doctor',
-        status: 'active',
-        createdAt: new Date().toISOString(),
-      });
-      setShowDoctorModal(false);
-      fetchData();
-    } catch (err) {
-      setError('Doctor add karne mein error aya. Firestore rules check karein.');
-    } finally {
-      setModalLoading(false);
-    }
+
+    const newDoc = {
+      id: `local_${Date.now()}`,
+      name,
+      email: formData.get('email') || '',
+      specialty: formData.get('specialty') || '',
+      phone: formData.get('phone') || '',
+      role: 'doctor',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    };
+
+    // Update UI immediately
+    setDoctors(prev => [...prev, newDoc]);
+    setStats(prev => ({ ...prev, totalDoctors: prev.totalDoctors + 1 }));
+    setShowDoctorModal(false);
+
+    // Sync Firestore in background
+    syncFirestore(addDoc(collection(db, 'users'), {
+      name: newDoc.name, email: newDoc.email, specialty: newDoc.specialty,
+      phone: newDoc.phone, role: 'doctor', status: 'active',
+      createdAt: newDoc.createdAt,
+    }));
   }
 
-  // Add Receptionist handler
-  async function handleAddReceptionist(e) {
+  // Add Receptionist — optimistic update
+  function handleAddReceptionist(e) {
     const formData = new FormData(e.target);
     const name = formData.get('name');
     if (!name) return;
-    setModalLoading(true);
-    try {
-      await addDoc(collection(db, 'users'), {
-        name,
-        email: formData.get('email') || '',
-        phone: formData.get('phone') || '',
-        role: 'receptionist',
-        status: 'active',
-        createdAt: new Date().toISOString(),
-      });
-      setShowReceptionistModal(false);
-      fetchData();
-    } catch (err) {
-      setError('Receptionist add karne mein error aya. Firestore rules check karein.');
-    } finally {
-      setModalLoading(false);
-    }
+
+    const newDoc = {
+      id: `local_${Date.now()}`,
+      name,
+      email: formData.get('email') || '',
+      phone: formData.get('phone') || '',
+      role: 'receptionist',
+      status: 'active',
+      createdAt: new Date().toISOString(),
+    };
+
+    setReceptionists(prev => [...prev, newDoc]);
+    setStats(prev => ({ ...prev, totalReceptionists: prev.totalReceptionists + 1 }));
+    setShowReceptionistModal(false);
+
+    syncFirestore(addDoc(collection(db, 'users'), {
+      name: newDoc.name, email: newDoc.email, phone: newDoc.phone,
+      role: 'receptionist', status: 'active', createdAt: newDoc.createdAt,
+    }));
   }
 
-  // Add Patient handler
-  async function handleAddPatient(e) {
+  // Add Patient — optimistic update
+  function handleAddPatient(e) {
     const formData = new FormData(e.target);
     const name = formData.get('name');
     if (!name) return;
-    setModalLoading(true);
-    try {
-      await addDoc(collection(db, 'users'), {
-        name,
-        email: formData.get('email') || '',
-        phone: formData.get('phone') || '',
-        disease: formData.get('disease') || '',
-        bloodType: formData.get('bloodType') || '',
-        role: 'patient',
-        status: formData.get('status') || 'active',
-        createdAt: new Date().toISOString(),
-      });
-      setShowPatientModal(false);
-      fetchData();
-    } catch (err) {
-      setError('Patient add karne mein error aya. Firestore rules check karein.');
-    } finally {
-      setModalLoading(false);
-    }
+
+    const newDoc = {
+      id: `local_${Date.now()}`,
+      name,
+      email: formData.get('email') || '',
+      phone: formData.get('phone') || '',
+      disease: formData.get('disease') || '',
+      bloodType: formData.get('bloodType') || '',
+      role: 'patient',
+      status: formData.get('status') || 'active',
+      createdAt: new Date().toISOString(),
+    };
+
+    setPatients(prev => [...prev, newDoc]);
+    setStats(prev => ({ ...prev, totalPatients: prev.totalPatients + 1 }));
+    setShowPatientModal(false);
+
+    syncFirestore(addDoc(collection(db, 'users'), {
+      name: newDoc.name, email: newDoc.email, phone: newDoc.phone,
+      disease: newDoc.disease, bloodType: newDoc.bloodType,
+      role: 'patient', status: newDoc.status, createdAt: newDoc.createdAt,
+    }));
   }
 
-  // Update Patient (disease + status + bloodType)
-  async function handleUpdatePatient(e) {
+  // Update Patient — optimistic update
+  function handleUpdatePatient(e) {
     if (!editingPatient) return;
     const formData = new FormData(e.target);
-    const disease = formData.get('disease') || editingPatient.disease || '';
+    const disease   = formData.get('disease')   || editingPatient.disease   || '';
     const bloodType = formData.get('bloodType') || editingPatient.bloodType || '';
-    const status = formData.get('status') || editingPatient.status || 'active';
-    setModalLoading(true);
-    try {
-      // setDoc with merge works even if doc doesn't exist (unlike updateDoc)
-      await setDoc(doc(db, 'users', editingPatient.id), { disease, bloodType, status }, { merge: true });
-      setShowEditPatientModal(false);
-      setEditingPatient(null);
-      fetchData();
-    } catch (err) {
-      console.error('Update patient error:', err);
-      setError(`Update failed: ${err.message}`);
-    } finally {
-      setModalLoading(false);
-    }
+    const status    = formData.get('status')    || editingPatient.status    || 'active';
+
+    // Update UI immediately — no await, no loading state
+    setPatients(prev => prev.map(p =>
+      p.id === editingPatient.id ? { ...p, disease, bloodType, status } : p
+    ));
+    setShowEditPatientModal(false);
+    setEditingPatient(null);
+
+    // Sync Firestore in background
+    syncFirestore(setDoc(doc(db, 'users', editingPatient.id), { disease, bloodType, status }, { merge: true }));
   }
 
-  // Delete handler
-  async function handleDelete() {
+  // Delete — optimistic update
+  function handleDelete() {
     if (!deleteTarget) return;
-    try {
-      await deleteDoc(doc(db, 'users', deleteTarget.data.id));
-      setShowConfirmDialog(false);
-      setDeleteTarget(null);
-      fetchData();
-    } catch (err) {
-      setError(`Delete karne mein error aya. Firestore rules check karein.`);
+    const { type, data } = deleteTarget;
+
+    if (type === 'doctor') {
+      setDoctors(prev => prev.filter(d => d.id !== data.id));
+      setStats(prev => ({ ...prev, totalDoctors: prev.totalDoctors - 1 }));
+    } else if (type === 'receptionist') {
+      setReceptionists(prev => prev.filter(r => r.id !== data.id));
+      setStats(prev => ({ ...prev, totalReceptionists: prev.totalReceptionists - 1 }));
+    } else if (type === 'patient') {
+      setPatients(prev => prev.filter(p => p.id !== data.id));
+      setStats(prev => ({ ...prev, totalPatients: prev.totalPatients - 1 }));
     }
+
+    setShowConfirmDialog(false);
+    setDeleteTarget(null);
+
+    syncFirestore(deleteDoc(doc(db, 'users', data.id)));
   }
 
   const renderContent = () => {
@@ -298,7 +321,7 @@ export function AdminDashboard() {
         onClose={() => setShowDoctorModal(false)}
         title="Add New Doctor"
         submitLabel="Add Doctor"
-        isLoading={modalLoading}
+        isLoading={false}
         onSubmit={handleAddDoctor}
       >
         <div className="space-y-4">
@@ -317,7 +340,7 @@ export function AdminDashboard() {
         onClose={() => setShowReceptionistModal(false)}
         title="Add New Receptionist"
         submitLabel="Add Receptionist"
-        isLoading={modalLoading}
+        isLoading={false}
         onSubmit={handleAddReceptionist}
       >
         <div className="space-y-4">
@@ -335,7 +358,7 @@ export function AdminDashboard() {
         onClose={() => setShowPatientModal(false)}
         title="Add New Patient"
         submitLabel="Add Patient"
-        isLoading={modalLoading}
+        isLoading={false}
         onSubmit={handleAddPatient}
       >
         <div className="space-y-4">
@@ -383,7 +406,7 @@ export function AdminDashboard() {
         onClose={() => { setShowEditPatientModal(false); setEditingPatient(null); }}
         title="Update Patient Info"
         submitLabel="Save Changes"
-        isLoading={modalLoading}
+        isLoading={false}
         onSubmit={handleUpdatePatient}
       >
         <div className="space-y-4">
