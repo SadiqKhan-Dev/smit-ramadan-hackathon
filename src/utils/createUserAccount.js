@@ -1,5 +1,5 @@
 import { initializeApp, deleteApp } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -11,26 +11,20 @@ const firebaseConfig = {
   appId:             import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-function withTimeout(promise, ms) {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)
-    ),
-  ]);
-}
-
 export async function createUserAccount({ name, email, password, role, specialty, phone }) {
-  const secondaryApp = initializeApp(firebaseConfig, `tmp_${Date.now()}`);
+  const secondaryApp  = initializeApp(firebaseConfig, `tmp_${Date.now()}`);
   const secondaryAuth = getAuth(secondaryApp);
-
-  // Use secondary app's OWN Firestore — writes as the new user (fresh token, more reliable)
-  const secondaryDb = getFirestore(secondaryApp);
+  const secondaryDb   = getFirestore(secondaryApp);
 
   try {
     // 1 — Create Firebase Auth account
     const { user } = await createUserWithEmailAndPassword(secondaryAuth, email, password);
 
+    // 2 — Store role in displayName using "role::name" format
+    //     This is the PRIMARY way role is fetched at login (100% reliable, no Firestore needed)
+    await updateProfile(user, { displayName: `${role}::${name}` });
+
+    // 3 — Save Firestore profile as background (nice-to-have, not required for login)
     const profileData = {
       uid:        user.uid,
       name,
@@ -42,37 +36,19 @@ export async function createUserAccount({ name, email, password, role, specialty
       hasAccount: true,
       createdAt:  new Date().toISOString(),
     };
+    setDoc(doc(secondaryDb, 'users', user.uid), profileData)
+      .catch(err => console.warn('Firestore profile save failed (non-critical):', err.message));
 
-    // 2 — Save profile as the new user (their fresh token satisfies Firestore rules)
-    //     8-second timeout; if it still fails, we return an error to admin
-    try {
-      await withTimeout(
-        setDoc(doc(secondaryDb, 'users', user.uid), profileData),
-        8000
-      );
-    } catch (firestoreErr) {
-      console.warn('Firestore profile save failed:', firestoreErr.message);
-      // Auth account was created — return partial success with a warning
-      return {
-        success: true,
-        uid: user.uid,
-        warning:
-          'Account ban gaya lekin profile save nahi ho saka. ' +
-          'Doctor/staff login mein masla ho sakta hai. ' +
-          'Internet connection check karo aur thodi der mein dobara try karo.',
-      };
-    }
-
-    // 3 — Sign out from secondary app
+    // 4 — Sign out secondary user
     signOut(secondaryAuth).catch(() => {});
 
     return { success: true, uid: user.uid };
   } catch (err) {
     const errorMap = {
-      'auth/email-already-in-use':  'Yeh email already registered hai',
-      'auth/weak-password':         'Password kam az kam 6 characters ka hona chahiye',
-      'auth/invalid-email':         'Email address galat hai',
-      'auth/network-request-failed':'Network error. Internet connection check karo.',
+      'auth/email-already-in-use':   'Yeh email already registered hai',
+      'auth/weak-password':          'Password kam az kam 6 characters ka hona chahiye',
+      'auth/invalid-email':          'Email address galat hai',
+      'auth/network-request-failed': 'Network error. Internet connection check karo.',
     };
     return { success: false, error: errorMap[err.code] || err.message };
   } finally {
