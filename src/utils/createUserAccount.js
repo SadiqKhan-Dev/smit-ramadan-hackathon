@@ -22,21 +22,21 @@ export async function createUserAccount({ name, email, password, role, specialty
   try {
     const { user } = await createUserWithEmailAndPassword(secondaryAuth, email, password);
 
-    // Save user profile in Firestore at /users/{uid} so the app can read role on login
-    await setDoc(doc(db, 'users', user.uid), {
-      uid:       user.uid,
+    // Fire-and-forget Firestore profile — never block on this (Firestore can hang offline)
+    setDoc(doc(db, 'users', user.uid), {
+      uid:        user.uid,
       name,
       email,
       role,
-      specialty: specialty || null,
-      phone:     phone     || null,
-      status:    'active',
+      specialty:  specialty || null,
+      phone:      phone     || null,
+      status:     'active',
       hasAccount: true,
-      createdAt: new Date().toISOString(),
-    });
+      createdAt:  new Date().toISOString(),
+    }).catch(err => console.warn('Firestore profile save failed (non-blocking):', err.message));
 
-    // Sign the new user out of the secondary app
-    await signOut(secondaryAuth);
+    // Sign the new user out of the secondary app (also non-blocking)
+    signOut(secondaryAuth).catch(() => {});
 
     return { success: true, uid: user.uid };
   } catch (err) {
@@ -48,6 +48,7 @@ export async function createUserAccount({ name, email, password, role, specialty
     };
     return { success: false, error: errorMap[err.code] || err.message };
   } finally {
-    try { await deleteApp(secondaryApp); } catch (_) {}
+    // Delay cleanup so signOut has time to finish
+    setTimeout(() => { try { deleteApp(secondaryApp); } catch (_) {} }, 3000);
   }
 }
