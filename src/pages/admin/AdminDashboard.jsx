@@ -1,31 +1,70 @@
-import React, { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, setDoc, query, where } from 'firebase/firestore';
-import { MOCK_ADMIN_DOCTORS, MOCK_ADMIN_RECEPTIONISTS, MOCK_ADMIN_PATIENTS } from '../../data/mockData';
-import { db } from '../../config/firebase';
-import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { createUserAccount } from '../../utils/createUserAccount';
+import React, { useState, useEffect } from "react";
 import {
-  Stethoscope, Users, UserCog, DollarSign,
-  Plus, Edit, Trash2, TrendingUp, TrendingDown,
-  Activity, FileText, Bell, Shield, Palette, Globe,
-  CheckCircle, AlertTriangle, Clock, Heart, Key, X, Copy
-} from 'lucide-react';
-import { Sidebar } from '../../components/layout/Sidebar';
-import { Card, CardContent, StatCard } from '../../components/ui/Card';
-import { Button } from '../../components/ui/Button';
-import { Input, Select } from '../../components/ui/Input';
-import { DataTable, StatusBadge, PageHeader, ErrorAlert, EmptyState, LoadingSkeleton } from '../../components/ui/components';
-import { ModalForm, ConfirmDialog } from '../../components/ui/ModalForm';
+  collection,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  doc,
+  updateDoc,
+  setDoc,
+  query,
+  where,
+} from "firebase/firestore";
+import {
+  MOCK_ADMIN_DOCTORS,
+  MOCK_ADMIN_RECEPTIONISTS,
+  MOCK_ADMIN_PATIENTS,
+} from "../../data/mockData";
+import { db } from "../../config/firebase";
+import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { createUserAccount } from "../../utils/createUserAccount";
+import {
+  Stethoscope,
+  Users,
+  UserCog,
+  DollarSign,
+  Plus,
+  Edit,
+  Trash2,
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  FileText,
+  Bell,
+  Shield,
+  Palette,
+  Globe,
+  CheckCircle,
+  AlertTriangle,
+  Clock,
+  Heart,
+  Key,
+  X,
+  Copy,
+} from "lucide-react";
+import { Sidebar } from "../../components/layout/Sidebar";
+import { Card, CardContent, StatCard } from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
+import { Input, Select } from "../../components/ui/Input";
+import {
+  DataTable,
+  StatusBadge,
+  PageHeader,
+  ErrorAlert,
+  EmptyState,
+  LoadingSkeleton,
+} from "../../components/ui/components";
+import { ModalForm, ConfirmDialog } from "../../components/ui/ModalForm";
 
 /**
  * Admin Dashboard Component
  */
 export function AdminDashboard() {
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSection] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   // Data state
   const [doctors, setDoctors] = useState([]);
@@ -43,7 +82,8 @@ export function AdminDashboard() {
   const [showEditDoctorModal, setShowEditDoctorModal] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [showReceptionistModal, setShowReceptionistModal] = useState(false);
-  const [showEditReceptionistModal, setShowEditReceptionistModal] = useState(false);
+  const [showEditReceptionistModal, setShowEditReceptionistModal] =
+    useState(false);
   const [editingReceptionist, setEditingReceptionist] = useState(null);
   const [showPatientModal, setShowPatientModal] = useState(false);
   const [showEditPatientModal, setShowEditPatientModal] = useState(false);
@@ -68,22 +108,36 @@ export function AdminDashboard() {
   async function fetchData() {
     try {
       setLoading(true);
-      const usersRef = collection(db, 'users');
+      const usersRef = collection(db, "users");
 
       const [doctorsSnap, receptionistsSnap, patientsSnap] = await Promise.all([
-        getDocs(query(usersRef, where('role', '==', 'doctor'))),
-        getDocs(query(usersRef, where('role', '==', 'receptionist'))),
-        getDocs(query(usersRef, where('role', '==', 'patient'))),
+        getDocs(query(usersRef, where("role", "==", "doctor"))),
+        getDocs(query(usersRef, where("role", "==", "receptionist"))),
+        getDocs(query(usersRef, where("role", "==", "patient"))),
       ]);
 
-      const doctorsData = doctorsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const receptionistsData = receptionistsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      const patientsData = patientsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const doctorsData = doctorsSnap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }));
+      const receptionistsData = receptionistsSnap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }));
+      const patientsData = patientsSnap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      }));
 
       // Use mock data as fallback when Firestore is empty
-      const finalDoctors = doctorsData.length > 0 ? doctorsData : MOCK_ADMIN_DOCTORS;
-      const finalReceptionists = receptionistsData.length > 0 ? receptionistsData : MOCK_ADMIN_RECEPTIONISTS;
-      const finalPatients = patientsData.length > 0 ? patientsData : MOCK_ADMIN_PATIENTS;
+      const finalDoctors =
+        doctorsData.length > 0 ? doctorsData : MOCK_ADMIN_DOCTORS;
+      const finalReceptionists =
+        receptionistsData.length > 0
+          ? receptionistsData
+          : MOCK_ADMIN_RECEPTIONISTS;
+      const finalPatients =
+        patientsData.length > 0 ? patientsData : MOCK_ADMIN_PATIENTS;
 
       setDoctors(finalDoctors);
       setReceptionists(finalReceptionists);
@@ -95,7 +149,7 @@ export function AdminDashboard() {
         totalRevenue: finalPatients.length * 150,
       });
     } catch (err) {
-      console.error('Fetch error:', err);
+      console.error("Fetch error:", err);
       // Use mock data on error
       setDoctors(MOCK_ADMIN_DOCTORS);
       setReceptionists(MOCK_ADMIN_RECEPTIONISTS);
@@ -114,13 +168,16 @@ export function AdminDashboard() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/');
+    navigate("/");
   };
 
   // Fire-and-forget Firestore sync (never blocks UI)
   function syncFirestore(promise) {
-    promise.catch(err => {
-      console.warn('Firestore sync failed (offline ya rules issue):', err.message);
+    promise.catch((err) => {
+      console.warn(
+        "Firestore sync failed (offline ya rules issue):",
+        err.message,
+      );
     });
   }
 
@@ -137,12 +194,15 @@ export function AdminDashboard() {
     if (!accountTarget) return;
 
     const formData = new FormData(e.target);
-    const email    = formData.get('email');
-    const password = formData.get('password');
-    const confirm  = formData.get('confirmPassword');
+    const email = formData.get("email");
+    const password = formData.get("password");
+    const confirm = formData.get("confirmPassword");
 
     if (password !== confirm) {
-      setAccountResult({ success: false, error: 'Passwords match nahi ho rahe' });
+      setAccountResult({
+        success: false,
+        error: "Passwords match nahi ho rahe",
+      });
       return;
     }
 
@@ -151,26 +211,43 @@ export function AdminDashboard() {
 
     const { type, data } = accountTarget;
     const result = await createUserAccount({
-      name:      data.name,
+      name: data.name,
       email,
       password,
-      role:      type,
+      role: type,
       specialty: data.specialty || null,
-      phone:     data.phone     || null,
+      phone: data.phone || null,
     });
 
     setAccountLoading(false);
 
     if (result.success) {
       // Mark the row as having an account in local state
-      if (type === 'doctor') {
-        setDoctors(prev => prev.map(d => d.id === data.id ? { ...d, hasAccount: true, email } : d));
-      } else if (type === 'receptionist') {
-        setReceptionists(prev => prev.map(r => r.id === data.id ? { ...r, hasAccount: true, email } : r));
+      if (type === "doctor") {
+        setDoctors((prev) =>
+          prev.map((d) =>
+            d.id === data.id ? { ...d, hasAccount: true, email } : d,
+          ),
+        );
+      } else if (type === "receptionist") {
+        setReceptionists((prev) =>
+          prev.map((r) =>
+            r.id === data.id ? { ...r, hasAccount: true, email } : r,
+          ),
+        );
       } else {
-        setPatients(prev => prev.map(p => p.id === data.id ? { ...p, hasAccount: true, email } : p));
+        setPatients((prev) =>
+          prev.map((p) =>
+            p.id === data.id ? { ...p, hasAccount: true, email } : p,
+          ),
+        );
       }
-      setAccountResult({ success: true, email, password, warning: result.warning || null });
+      setAccountResult({
+        success: true,
+        email,
+        password,
+        warning: result.warning || null,
+      });
     } else {
       setAccountResult({ success: false, error: result.error });
     }
@@ -185,142 +262,195 @@ export function AdminDashboard() {
   // Add Doctor — optimistic update, no await
   function handleAddDoctor(e) {
     const formData = new FormData(e.target);
-    const name = formData.get('name');
+    const name = formData.get("name");
     if (!name) return;
 
     const newDoc = {
       id: `local_${Date.now()}`,
       name,
-      email: formData.get('email') || '',
-      specialty: formData.get('specialty') || '',
-      phone: formData.get('phone') || '',
-      role: 'doctor',
-      status: 'active',
+      email: formData.get("email") || "",
+      specialty: formData.get("specialty") || "",
+      phone: formData.get("phone") || "",
+      role: "doctor",
+      status: "active",
       createdAt: new Date().toISOString(),
     };
 
     // Update UI immediately
-    setDoctors(prev => [...prev, newDoc]);
-    setStats(prev => ({ ...prev, totalDoctors: prev.totalDoctors + 1 }));
+    setDoctors((prev) => [...prev, newDoc]);
+    setStats((prev) => ({ ...prev, totalDoctors: prev.totalDoctors + 1 }));
     setShowDoctorModal(false);
 
     // Sync Firestore in background
-    syncFirestore(addDoc(collection(db, 'users'), {
-      name: newDoc.name, email: newDoc.email, specialty: newDoc.specialty,
-      phone: newDoc.phone, role: 'doctor', status: 'active',
-      createdAt: newDoc.createdAt,
-    }));
+    syncFirestore(
+      addDoc(collection(db, "users"), {
+        name: newDoc.name,
+        email: newDoc.email,
+        specialty: newDoc.specialty,
+        phone: newDoc.phone,
+        role: "doctor",
+        status: "active",
+        createdAt: newDoc.createdAt,
+      }),
+    );
   }
 
   // Add Receptionist — optimistic update
   function handleAddReceptionist(e) {
     const formData = new FormData(e.target);
-    const name = formData.get('name');
+    const name = formData.get("name");
     if (!name) return;
 
     const newDoc = {
       id: `local_${Date.now()}`,
       name,
-      email: formData.get('email') || '',
-      phone: formData.get('phone') || '',
-      role: 'receptionist',
-      status: 'active',
+      email: formData.get("email") || "",
+      phone: formData.get("phone") || "",
+      role: "receptionist",
+      status: "active",
       createdAt: new Date().toISOString(),
     };
 
-    setReceptionists(prev => [...prev, newDoc]);
-    setStats(prev => ({ ...prev, totalReceptionists: prev.totalReceptionists + 1 }));
+    setReceptionists((prev) => [...prev, newDoc]);
+    setStats((prev) => ({
+      ...prev,
+      totalReceptionists: prev.totalReceptionists + 1,
+    }));
     setShowReceptionistModal(false);
 
-    syncFirestore(addDoc(collection(db, 'users'), {
-      name: newDoc.name, email: newDoc.email, phone: newDoc.phone,
-      role: 'receptionist', status: 'active', createdAt: newDoc.createdAt,
-    }));
+    syncFirestore(
+      addDoc(collection(db, "users"), {
+        name: newDoc.name,
+        email: newDoc.email,
+        phone: newDoc.phone,
+        role: "receptionist",
+        status: "active",
+        createdAt: newDoc.createdAt,
+      }),
+    );
   }
 
   // Update Doctor — optimistic update
   function handleUpdateDoctor(e) {
     if (!editingDoctor) return;
     const formData = new FormData(e.target);
-    const name      = formData.get('name')      || editingDoctor.name;
-    const email     = formData.get('email')     || editingDoctor.email     || '';
-    const phone     = formData.get('phone')     || editingDoctor.phone     || '';
-    const specialty = formData.get('specialty') || editingDoctor.specialty || '';
-    const status    = formData.get('status')    || editingDoctor.status    || 'active';
-    const gender    = formData.get('gender')    || editingDoctor.gender    || '';
+    const name = formData.get("name") || editingDoctor.name;
+    const email = formData.get("email") || editingDoctor.email || "";
+    const phone = formData.get("phone") || editingDoctor.phone || "";
+    const specialty =
+      formData.get("specialty") || editingDoctor.specialty || "";
+    const status = formData.get("status") || editingDoctor.status || "active";
+    const gender = formData.get("gender") || editingDoctor.gender || "";
 
-    setDoctors(prev => prev.map(d =>
-      d.id === editingDoctor.id ? { ...d, name, email, phone, specialty, status, gender } : d
-    ));
+    setDoctors((prev) =>
+      prev.map((d) =>
+        d.id === editingDoctor.id
+          ? { ...d, name, email, phone, specialty, status, gender }
+          : d,
+      ),
+    );
     setShowEditDoctorModal(false);
     setEditingDoctor(null);
-    syncFirestore(setDoc(doc(db, 'users', editingDoctor.id), { name, email, phone, specialty, status, gender }, { merge: true }));
+    syncFirestore(
+      setDoc(
+        doc(db, "users", editingDoctor.id),
+        { name, email, phone, specialty, status, gender },
+        { merge: true },
+      ),
+    );
   }
 
   // Update Receptionist — optimistic update
   function handleUpdateReceptionist(e) {
     if (!editingReceptionist) return;
     const formData = new FormData(e.target);
-    const name   = formData.get('name')   || editingReceptionist.name;
-    const email  = formData.get('email')  || editingReceptionist.email  || '';
-    const phone  = formData.get('phone')  || editingReceptionist.phone  || '';
-    const status = formData.get('status') || editingReceptionist.status || 'active';
-    const gender = formData.get('gender') || editingReceptionist.gender || '';
+    const name = formData.get("name") || editingReceptionist.name;
+    const email = formData.get("email") || editingReceptionist.email || "";
+    const phone = formData.get("phone") || editingReceptionist.phone || "";
+    const status =
+      formData.get("status") || editingReceptionist.status || "active";
+    const gender = formData.get("gender") || editingReceptionist.gender || "";
 
-    setReceptionists(prev => prev.map(r =>
-      r.id === editingReceptionist.id ? { ...r, name, email, phone, status, gender } : r
-    ));
+    setReceptionists((prev) =>
+      prev.map((r) =>
+        r.id === editingReceptionist.id
+          ? { ...r, name, email, phone, status, gender }
+          : r,
+      ),
+    );
     setShowEditReceptionistModal(false);
     setEditingReceptionist(null);
-    syncFirestore(setDoc(doc(db, 'users', editingReceptionist.id), { name, email, phone, status, gender }, { merge: true }));
+    syncFirestore(
+      setDoc(
+        doc(db, "users", editingReceptionist.id),
+        { name, email, phone, status, gender },
+        { merge: true },
+      ),
+    );
   }
 
   // Add Patient — optimistic update
   function handleAddPatient(e) {
     const formData = new FormData(e.target);
-    const name = formData.get('name');
+    const name = formData.get("name");
     if (!name) return;
 
     const newDoc = {
       id: `local_${Date.now()}`,
       name,
-      email: formData.get('email') || '',
-      phone: formData.get('phone') || '',
-      disease: formData.get('disease') || '',
-      bloodType: formData.get('bloodType') || '',
-      role: 'patient',
-      status: formData.get('status') || 'active',
+      email: formData.get("email") || "",
+      phone: formData.get("phone") || "",
+      disease: formData.get("disease") || "",
+      bloodType: formData.get("bloodType") || "",
+      role: "patient",
+      status: formData.get("status") || "active",
       createdAt: new Date().toISOString(),
     };
 
-    setPatients(prev => [...prev, newDoc]);
-    setStats(prev => ({ ...prev, totalPatients: prev.totalPatients + 1 }));
+    setPatients((prev) => [...prev, newDoc]);
+    setStats((prev) => ({ ...prev, totalPatients: prev.totalPatients + 1 }));
     setShowPatientModal(false);
 
-    syncFirestore(addDoc(collection(db, 'users'), {
-      name: newDoc.name, email: newDoc.email, phone: newDoc.phone,
-      disease: newDoc.disease, bloodType: newDoc.bloodType,
-      role: 'patient', status: newDoc.status, createdAt: newDoc.createdAt,
-    }));
+    syncFirestore(
+      addDoc(collection(db, "users"), {
+        name: newDoc.name,
+        email: newDoc.email,
+        phone: newDoc.phone,
+        disease: newDoc.disease,
+        bloodType: newDoc.bloodType,
+        role: "patient",
+        status: newDoc.status,
+        createdAt: newDoc.createdAt,
+      }),
+    );
   }
 
   // Update Patient — optimistic update
   function handleUpdatePatient(e) {
     if (!editingPatient) return;
     const formData = new FormData(e.target);
-    const disease   = formData.get('disease')   || editingPatient.disease   || '';
-    const bloodType = formData.get('bloodType') || editingPatient.bloodType || '';
-    const status    = formData.get('status')    || editingPatient.status    || 'active';
+    const disease = formData.get("disease") || editingPatient.disease || "";
+    const bloodType =
+      formData.get("bloodType") || editingPatient.bloodType || "";
+    const status = formData.get("status") || editingPatient.status || "active";
 
     // Update UI immediately — no await, no loading state
-    setPatients(prev => prev.map(p =>
-      p.id === editingPatient.id ? { ...p, disease, bloodType, status } : p
-    ));
+    setPatients((prev) =>
+      prev.map((p) =>
+        p.id === editingPatient.id ? { ...p, disease, bloodType, status } : p,
+      ),
+    );
     setShowEditPatientModal(false);
     setEditingPatient(null);
 
     // Sync Firestore in background
-    syncFirestore(setDoc(doc(db, 'users', editingPatient.id), { disease, bloodType, status }, { merge: true }));
+    syncFirestore(
+      setDoc(
+        doc(db, "users", editingPatient.id),
+        { disease, bloodType, status },
+        { merge: true },
+      ),
+    );
   }
 
   // Delete — optimistic update
@@ -328,65 +458,112 @@ export function AdminDashboard() {
     if (!deleteTarget) return;
     const { type, data } = deleteTarget;
 
-    if (type === 'doctor') {
-      setDoctors(prev => prev.filter(d => d.id !== data.id));
-      setStats(prev => ({ ...prev, totalDoctors: prev.totalDoctors - 1 }));
-    } else if (type === 'receptionist') {
-      setReceptionists(prev => prev.filter(r => r.id !== data.id));
-      setStats(prev => ({ ...prev, totalReceptionists: prev.totalReceptionists - 1 }));
-    } else if (type === 'patient') {
-      setPatients(prev => prev.filter(p => p.id !== data.id));
-      setStats(prev => ({ ...prev, totalPatients: prev.totalPatients - 1 }));
+    if (type === "doctor") {
+      setDoctors((prev) => prev.filter((d) => d.id !== data.id));
+      setStats((prev) => ({ ...prev, totalDoctors: prev.totalDoctors - 1 }));
+    } else if (type === "receptionist") {
+      setReceptionists((prev) => prev.filter((r) => r.id !== data.id));
+      setStats((prev) => ({
+        ...prev,
+        totalReceptionists: prev.totalReceptionists - 1,
+      }));
+    } else if (type === "patient") {
+      setPatients((prev) => prev.filter((p) => p.id !== data.id));
+      setStats((prev) => ({ ...prev, totalPatients: prev.totalPatients - 1 }));
     }
 
     setShowConfirmDialog(false);
     setDeleteTarget(null);
 
-    syncFirestore(deleteDoc(doc(db, 'users', data.id)));
+    syncFirestore(deleteDoc(doc(db, "users", data.id)));
   }
 
   const renderContent = () => {
     switch (activeSection) {
-      case 'dashboard':
-        return <DashboardOverview stats={stats} loading={loading} onNavigate={setActiveSection} />;
-      case 'doctors':
+      case "dashboard":
+        return (
+          <DashboardOverview
+            stats={stats}
+            loading={loading}
+            onNavigate={setActiveSection}
+          />
+        );
+      case "doctors":
         return (
           <DoctorManagement
             doctors={doctors}
             onAdd={() => setShowDoctorModal(true)}
-            onEdit={(doctor) => { setEditingDoctor(doctor); setShowEditDoctorModal(true); }}
-            onDelete={(doctor) => { setDeleteTarget({ type: 'doctor', data: doctor }); setShowConfirmDialog(true); }}
-            onCreateAccount={(doctor) => openAccountModal('doctor', doctor)}
+            onEdit={(doctor) => {
+              setEditingDoctor(doctor);
+              setShowEditDoctorModal(true);
+            }}
+            onDelete={(doctor) => {
+              setDeleteTarget({ type: "doctor", data: doctor });
+              setShowConfirmDialog(true);
+            }}
+            onCreateAccount={(doctor) => openAccountModal("doctor", doctor)}
           />
         );
-      case 'receptionists':
+      case "receptionists":
         return (
           <ReceptionistManagement
             receptionists={receptionists}
             onAdd={() => setShowReceptionistModal(true)}
-            onEdit={(rec) => { setEditingReceptionist(rec); setShowEditReceptionistModal(true); }}
-            onDelete={(rec) => { setDeleteTarget({ type: 'receptionist', data: rec }); setShowConfirmDialog(true); }}
-            onCreateAccount={(rec) => openAccountModal('receptionist', rec)}
+            onEdit={(rec) => {
+              setEditingReceptionist(rec);
+              setShowEditReceptionistModal(true);
+            }}
+            onDelete={(rec) => {
+              setDeleteTarget({ type: "receptionist", data: rec });
+              setShowConfirmDialog(true);
+            }}
+            onCreateAccount={(rec) => openAccountModal("receptionist", rec)}
           />
         );
-      case 'patients':
+      case "patients":
         return (
           <PatientManagement
             patients={patients}
             onAdd={() => setShowPatientModal(true)}
-            onEdit={(patient) => { setEditingPatient(patient); setShowEditPatientModal(true); }}
-            onDelete={(patient) => { setDeleteTarget({ type: 'patient', data: patient }); setShowConfirmDialog(true); }}
-            onCreateAccount={(patient) => openAccountModal('patient', patient)}
+            onEdit={(patient) => {
+              setEditingPatient(patient);
+              setShowEditPatientModal(true);
+            }}
+            onDelete={(patient) => {
+              setDeleteTarget({ type: "patient", data: patient });
+              setShowConfirmDialog(true);
+            }}
+            onCreateAccount={(patient) => openAccountModal("patient", patient)}
           />
         );
-      case 'analytics':
-        return <AnalyticsSection stats={stats} doctors={doctors} patients={patients} receptionists={receptionists} />;
-      case 'reports':
-        return <ReportsSection stats={stats} doctors={doctors} patients={patients} receptionists={receptionists} />;
-      case 'settings':
+      case "analytics":
+        return (
+          <AnalyticsSection
+            stats={stats}
+            doctors={doctors}
+            patients={patients}
+            receptionists={receptionists}
+          />
+        );
+      case "reports":
+        return (
+          <ReportsSection
+            stats={stats}
+            doctors={doctors}
+            patients={patients}
+            receptionists={receptionists}
+          />
+        );
+      case "settings":
         return <SettingsSection />;
       default:
-        return <DashboardOverview stats={stats} loading={loading} onNavigate={setActiveSection} />;
+        return (
+          <DashboardOverview
+            stats={stats}
+            loading={loading}
+            onNavigate={setActiveSection}
+          />
+        );
     }
   };
 
@@ -401,15 +578,25 @@ export function AdminDashboard() {
         onLogout={handleLogout}
       />
 
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
+      <div
+        className={`transition-all duration-300 ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"}`}
+      >
         <header className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between sticky top-0 z-30">
           <div>
-            <h1 className="text-xl font-bold text-gray-900 capitalize">{activeSection}</h1>
-            <p className="text-xs text-gray-500">Administrative Control Panel</p>
+            <h1 className="text-xl font-bold text-gray-900 capitalize">
+              {activeSection}
+            </h1>
+            <p className="text-xs text-gray-500">
+              Administrative Control Panel
+            </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600 hidden sm:block">{currentUser?.email}</span>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>Logout</Button>
+            <span className="text-sm text-gray-600 hidden sm:block">
+              {currentUser?.email}
+            </span>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              Logout
+            </Button>
           </div>
         </header>
 
@@ -418,7 +605,7 @@ export function AdminDashboard() {
             <ErrorAlert
               type="error"
               message={error}
-              onDismiss={() => setError('')}
+              onDismiss={() => setError("")}
               className="mb-6"
             />
           )}
@@ -436,24 +623,49 @@ export function AdminDashboard() {
         onSubmit={handleAddDoctor}
       >
         <div className="space-y-4">
-          <Input name="name" label="Full Name" placeholder="Dr. Ahmed Khan" required />
+          <Input
+            name="name"
+            label="Full Name"
+            placeholder="Dr. Ahmed Khan"
+            required
+          />
           <div className="grid grid-cols-2 gap-4">
-            <Input name="email" type="email" label="Email" placeholder="doctor@clinic.com" />
+            <Input
+              name="email"
+              type="email"
+              label="Email"
+              placeholder="doctor@clinic.com"
+            />
             <Input name="phone" label="Phone" placeholder="+92 300 0000000" />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Input name="specialty" label="Specialty" placeholder="e.g. Cardiology, Neurology" required />
-            <Select name="gender" label="Gender" placeholder="Select gender"
-              options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]} />
+            <Input
+              name="specialty"
+              label="Specialty"
+              placeholder="e.g. Cardiology, Neurology"
+              required
+            />
+            <Select
+              name="gender"
+              label="Gender"
+              placeholder="Select gender"
+              options={[
+                { value: "Male", label: "Male" },
+                { value: "Female", label: "Female" },
+              ]}
+            />
           </div>
         </div>
       </ModalForm>
 
       {/* Edit Doctor Modal */}
       <ModalForm
-        key={editingDoctor?.id || 'edit-doctor'}
+        key={editingDoctor?.id || "edit-doctor"}
         isOpen={showEditDoctorModal}
-        onClose={() => { setShowEditDoctorModal(false); setEditingDoctor(null); }}
+        onClose={() => {
+          setShowEditDoctorModal(false);
+          setEditingDoctor(null);
+        }}
         title="Edit Doctor Info"
         submitLabel="Save Changes"
         isLoading={false}
@@ -461,26 +673,57 @@ export function AdminDashboard() {
       >
         <div className="space-y-4">
           <div className="p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm font-medium text-gray-900">{editingDoctor?.name}</p>
+            <p className="text-sm font-medium text-gray-900">
+              {editingDoctor?.name}
+            </p>
             <p className="text-xs text-gray-500">{editingDoctor?.specialty}</p>
           </div>
-          <Input name="name" label="Full Name" defaultValue={editingDoctor?.name || ''} required />
+          <Input
+            name="name"
+            label="Full Name"
+            defaultValue={editingDoctor?.name || ""}
+            required
+          />
           <div className="grid grid-cols-2 gap-4">
-            <Input name="email" type="email" label="Email" defaultValue={editingDoctor?.email || ''} />
-            <Input name="phone" label="Phone" defaultValue={editingDoctor?.phone || ''} />
+            <Input
+              name="email"
+              type="email"
+              label="Email"
+              defaultValue={editingDoctor?.email || ""}
+            />
+            <Input
+              name="phone"
+              label="Phone"
+              defaultValue={editingDoctor?.phone || ""}
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Input name="specialty" label="Specialty" defaultValue={editingDoctor?.specialty || ''} />
-            <Select name="gender" label="Gender" placeholder="Select gender"
-              defaultValue={editingDoctor?.gender || ''}
-              options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]} />
+            <Input
+              name="specialty"
+              label="Specialty"
+              defaultValue={editingDoctor?.specialty || ""}
+            />
+            <Select
+              name="gender"
+              label="Gender"
+              placeholder="Select gender"
+              defaultValue={editingDoctor?.gender || ""}
+              options={[
+                { value: "Male", label: "Male" },
+                { value: "Female", label: "Female" },
+              ]}
+            />
           </div>
-          <Select name="status" label="Status" placeholder="Select status"
-            defaultValue={editingDoctor?.status || 'active'}
+          <Select
+            name="status"
+            label="Status"
+            placeholder="Select status"
+            defaultValue={editingDoctor?.status || "active"}
             options={[
-              { value: 'active', label: 'Active' },
-              { value: 'inactive', label: 'Inactive' },
-            ]} />
+              { value: "active", label: "Active" },
+              { value: "inactive", label: "Inactive" },
+            ]}
+          />
         </div>
       </ModalForm>
 
@@ -494,21 +737,41 @@ export function AdminDashboard() {
         onSubmit={handleAddReceptionist}
       >
         <div className="space-y-4">
-          <Input name="name" label="Full Name" placeholder="Sara Ali" required />
+          <Input
+            name="name"
+            label="Full Name"
+            placeholder="Sara Ali"
+            required
+          />
           <div className="grid grid-cols-2 gap-4">
-            <Input name="email" type="email" label="Email" placeholder="sara@clinic.com" />
+            <Input
+              name="email"
+              type="email"
+              label="Email"
+              placeholder="sara@clinic.com"
+            />
             <Input name="phone" label="Phone" placeholder="+92 300 0000000" />
           </div>
-          <Select name="gender" label="Gender" placeholder="Select gender"
-            options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]} />
+          <Select
+            name="gender"
+            label="Gender"
+            placeholder="Select gender"
+            options={[
+              { value: "Male", label: "Male" },
+              { value: "Female", label: "Female" },
+            ]}
+          />
         </div>
       </ModalForm>
 
       {/* Edit Receptionist Modal */}
       <ModalForm
-        key={editingReceptionist?.id || 'edit-receptionist'}
+        key={editingReceptionist?.id || "edit-receptionist"}
         isOpen={showEditReceptionistModal}
-        onClose={() => { setShowEditReceptionistModal(false); setEditingReceptionist(null); }}
+        onClose={() => {
+          setShowEditReceptionistModal(false);
+          setEditingReceptionist(null);
+        }}
         title="Edit Receptionist Info"
         submitLabel="Save Changes"
         isLoading={false}
@@ -516,24 +779,53 @@ export function AdminDashboard() {
       >
         <div className="space-y-4">
           <div className="p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm font-medium text-gray-900">{editingReceptionist?.name}</p>
-            <p className="text-xs text-gray-500">{editingReceptionist?.email}</p>
+            <p className="text-sm font-medium text-gray-900">
+              {editingReceptionist?.name}
+            </p>
+            <p className="text-xs text-gray-500">
+              {editingReceptionist?.email}
+            </p>
           </div>
-          <Input name="name" label="Full Name" defaultValue={editingReceptionist?.name || ''} required />
+          <Input
+            name="name"
+            label="Full Name"
+            defaultValue={editingReceptionist?.name || ""}
+            required
+          />
           <div className="grid grid-cols-2 gap-4">
-            <Input name="email" type="email" label="Email" defaultValue={editingReceptionist?.email || ''} />
-            <Input name="phone" label="Phone" defaultValue={editingReceptionist?.phone || ''} />
+            <Input
+              name="email"
+              type="email"
+              label="Email"
+              defaultValue={editingReceptionist?.email || ""}
+            />
+            <Input
+              name="phone"
+              label="Phone"
+              defaultValue={editingReceptionist?.phone || ""}
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <Select name="gender" label="Gender" placeholder="Select gender"
-              defaultValue={editingReceptionist?.gender || ''}
-              options={[{ value: 'Male', label: 'Male' }, { value: 'Female', label: 'Female' }]} />
-            <Select name="status" label="Status" placeholder="Select status"
-              defaultValue={editingReceptionist?.status || 'active'}
+            <Select
+              name="gender"
+              label="Gender"
+              placeholder="Select gender"
+              defaultValue={editingReceptionist?.gender || ""}
               options={[
-                { value: 'active', label: 'Active' },
-                { value: 'inactive', label: 'Inactive' },
-              ]} />
+                { value: "Male", label: "Male" },
+                { value: "Female", label: "Female" },
+              ]}
+            />
+            <Select
+              name="status"
+              label="Status"
+              placeholder="Select status"
+              defaultValue={editingReceptionist?.status || "active"}
+              options={[
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" },
+              ]}
+            />
           </div>
         </div>
       </ModalForm>
@@ -548,26 +840,41 @@ export function AdminDashboard() {
         onSubmit={handleAddPatient}
       >
         <div className="space-y-4">
-          <Input name="name" label="Full Name" placeholder="Ali Hassan" required />
+          <Input
+            name="name"
+            label="Full Name"
+            placeholder="Ali Hassan"
+            required
+          />
           <div className="grid grid-cols-2 gap-4">
-            <Input name="email" type="email" label="Email" placeholder="ali@gmail.com" />
+            <Input
+              name="email"
+              type="email"
+              label="Email"
+              placeholder="ali@gmail.com"
+            />
             <Input name="phone" label="Phone" placeholder="+92 300 0000000" />
           </div>
-          <Input name="disease" label="Disease / Condition" placeholder="e.g. Diabetes, Fever, Flu" required />
+          <Input
+            name="disease"
+            label="Disease / Condition"
+            placeholder="e.g. Diabetes, Fever, Flu"
+            required
+          />
           <div className="grid grid-cols-2 gap-4">
             <Select
               name="bloodType"
               label="Blood Type"
               placeholder="Select blood type"
               options={[
-                { value: 'A+', label: 'A+' },
-                { value: 'A-', label: 'A-' },
-                { value: 'B+', label: 'B+' },
-                { value: 'B-', label: 'B-' },
-                { value: 'AB+', label: 'AB+' },
-                { value: 'AB-', label: 'AB-' },
-                { value: 'O+', label: 'O+' },
-                { value: 'O-', label: 'O-' },
+                { value: "A+", label: "A+" },
+                { value: "A-", label: "A-" },
+                { value: "B+", label: "B+" },
+                { value: "B-", label: "B-" },
+                { value: "AB+", label: "AB+" },
+                { value: "AB-", label: "AB-" },
+                { value: "O+", label: "O+" },
+                { value: "O-", label: "O-" },
               ]}
             />
             <Select
@@ -575,10 +882,10 @@ export function AdminDashboard() {
               label="Status"
               placeholder="Select status"
               options={[
-                { value: 'active', label: 'Active' },
-                { value: 'critical', label: 'Critical' },
-                { value: 'recovered', label: 'Recovered' },
-                { value: 'inactive', label: 'Inactive' },
+                { value: "active", label: "Active" },
+                { value: "critical", label: "Critical" },
+                { value: "recovered", label: "Recovered" },
+                { value: "inactive", label: "Inactive" },
               ]}
             />
           </div>
@@ -587,9 +894,12 @@ export function AdminDashboard() {
 
       {/* Edit Patient Modal — key forces full remount on each patient so defaultValues reset */}
       <ModalForm
-        key={editingPatient?.id || 'edit-patient'}
+        key={editingPatient?.id || "edit-patient"}
         isOpen={showEditPatientModal}
-        onClose={() => { setShowEditPatientModal(false); setEditingPatient(null); }}
+        onClose={() => {
+          setShowEditPatientModal(false);
+          setEditingPatient(null);
+        }}
         title="Update Patient Info"
         submitLabel="Save Changes"
         isLoading={false}
@@ -597,42 +907,44 @@ export function AdminDashboard() {
       >
         <div className="space-y-4">
           <div className="p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm font-medium text-gray-900">{editingPatient?.name}</p>
+            <p className="text-sm font-medium text-gray-900">
+              {editingPatient?.name}
+            </p>
             <p className="text-xs text-gray-500">{editingPatient?.email}</p>
           </div>
           <Input
             name="disease"
             label="Disease / Condition"
             placeholder="e.g. Diabetes, Fever"
-            defaultValue={editingPatient?.disease || ''}
+            defaultValue={editingPatient?.disease || ""}
           />
           <div className="grid grid-cols-2 gap-4">
             <Select
               name="bloodType"
               label="Blood Type"
               placeholder="Select blood type"
-              defaultValue={editingPatient?.bloodType || ''}
+              defaultValue={editingPatient?.bloodType || ""}
               options={[
-                { value: 'A+', label: 'A+' },
-                { value: 'A-', label: 'A-' },
-                { value: 'B+', label: 'B+' },
-                { value: 'B-', label: 'B-' },
-                { value: 'AB+', label: 'AB+' },
-                { value: 'AB-', label: 'AB-' },
-                { value: 'O+', label: 'O+' },
-                { value: 'O-', label: 'O-' },
+                { value: "A+", label: "A+" },
+                { value: "A-", label: "A-" },
+                { value: "B+", label: "B+" },
+                { value: "B-", label: "B-" },
+                { value: "AB+", label: "AB+" },
+                { value: "AB-", label: "AB-" },
+                { value: "O+", label: "O+" },
+                { value: "O-", label: "O-" },
               ]}
             />
             <Select
               name="status"
               label="Status"
               placeholder="Select status"
-              defaultValue={editingPatient?.status || 'active'}
+              defaultValue={editingPatient?.status || "active"}
               options={[
-                { value: 'active', label: 'Active' },
-                { value: 'critical', label: 'Critical' },
-                { value: 'recovered', label: 'Recovered' },
-                { value: 'inactive', label: 'Inactive' },
+                { value: "active", label: "Active" },
+                { value: "critical", label: "Critical" },
+                { value: "recovered", label: "Recovered" },
+                { value: "inactive", label: "Inactive" },
               ]}
             />
           </div>
@@ -646,15 +958,26 @@ export function AdminDashboard() {
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl ${accountTarget.type === 'doctor' ? 'bg-blue-100' : accountTarget.type === 'receptionist' ? 'bg-green-100' : 'bg-purple-100'}`}>
-                  <Key className={`w-5 h-5 ${accountTarget.type === 'doctor' ? 'text-blue-600' : accountTarget.type === 'receptionist' ? 'text-green-600' : 'text-purple-600'}`} />
+                <div
+                  className={`p-2 rounded-xl ${accountTarget.type === "doctor" ? "bg-blue-100" : accountTarget.type === "receptionist" ? "bg-green-100" : "bg-purple-100"}`}
+                >
+                  <Key
+                    className={`w-5 h-5 ${accountTarget.type === "doctor" ? "text-blue-600" : accountTarget.type === "receptionist" ? "text-green-600" : "text-purple-600"}`}
+                  />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Create Acount</h2>
-                  <p className="text-xs text-gray-500">Login credentials set karo</p>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Create Acount
+                  </h2>
+                  <p className="text-xs text-gray-500">
+                    Login credentials set karo
+                  </p>
                 </div>
               </div>
-              <button onClick={closeAccountModal} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+              <button
+                onClick={closeAccountModal}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -665,37 +988,62 @@ export function AdminDashboard() {
                 <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
                   <div className="flex items-center gap-2 mb-3">
                     <CheckCircle className="w-5 h-5 text-green-600" />
-                    <p className="font-semibold text-green-800">Account ban gaya! 🎉</p>
+                    <p className="font-semibold text-green-800">
+                      Account ban gaya! 🎉
+                    </p>
                   </div>
                   <p className="text-xs text-green-700 mb-3">
-                    Yeh credentials <strong>{accountTarget.data.name}</strong> ko share karo taa ke woh login kar sakain.
+                    Yeh credentials <strong>{accountTarget.data.name}</strong>{" "}
+                    ko share karo taa ke woh login kar sakain.
                   </p>
                   {accountResult.warning && (
                     <div className="p-2 bg-yellow-50 border border-yellow-300 rounded-lg mb-2">
-                      <p className="text-xs text-yellow-800">⚠️ {accountResult.warning}</p>
+                      <p className="text-xs text-yellow-800">
+                        ⚠️ {accountResult.warning}
+                      </p>
                     </div>
                   )}
                   <div className="space-y-2">
                     <div className="flex justify-between items-center bg-white rounded-lg px-3 py-2.5 border border-green-200">
-                      <span className="text-xs text-gray-500 font-medium">Email</span>
-                      <span className="font-mono text-sm text-gray-900">{accountResult.email}</span>
+                      <span className="text-xs text-gray-500 font-medium">
+                        Email
+                      </span>
+                      <span className="font-mono text-sm text-gray-900">
+                        {accountResult.email}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center bg-white rounded-lg px-3 py-2.5 border border-green-200">
-                      <span className="text-xs text-gray-500 font-medium">Password</span>
-                      <span className="font-mono text-sm text-gray-900">{accountResult.password}</span>
+                      <span className="text-xs text-gray-500 font-medium">
+                        Password
+                      </span>
+                      <span className="font-mono text-sm text-gray-900">
+                        {accountResult.password}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center bg-white rounded-lg px-3 py-2.5 border border-green-200">
-                      <span className="text-xs text-gray-500 font-medium">Role</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize
-                        ${accountTarget.type === 'doctor' ? 'bg-blue-100 text-blue-700' :
-                          accountTarget.type === 'receptionist' ? 'bg-green-100 text-green-700' :
-                          'bg-purple-100 text-purple-700'}`}>
+                      <span className="text-xs text-gray-500 font-medium">
+                        Role
+                      </span>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize
+                        ${
+                          accountTarget.type === "doctor"
+                            ? "bg-blue-100 text-blue-700"
+                            : accountTarget.type === "receptionist"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-purple-100 text-purple-700"
+                        }`}
+                      >
                         {accountTarget.type}
                       </span>
                     </div>
                   </div>
                 </div>
-                <Button variant="outline" onClick={closeAccountModal} className="w-full">
+                <Button
+                  variant="outline"
+                  onClick={closeAccountModal}
+                  className="w-full"
+                >
                   Close
                 </Button>
               </div>
@@ -704,16 +1052,26 @@ export function AdminDashboard() {
               <form onSubmit={handleCreateAccount} className="p-6 space-y-4">
                 {/* User info preview */}
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm
-                    ${accountTarget.type === 'doctor' ? 'bg-blue-500' : accountTarget.type === 'receptionist' ? 'bg-green-500' : 'bg-purple-500'}`}>
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm
+                    ${accountTarget.type === "doctor" ? "bg-blue-500" : accountTarget.type === "receptionist" ? "bg-green-500" : "bg-purple-500"}`}
+                  >
                     {accountTarget.data.name?.charAt(0)}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">{accountTarget.data.name}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize
-                      ${accountTarget.type === 'doctor' ? 'bg-blue-100 text-blue-700' :
-                        accountTarget.type === 'receptionist' ? 'bg-green-100 text-green-700' :
-                        'bg-purple-100 text-purple-700'}`}>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {accountTarget.data.name}
+                    </p>
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize
+                      ${
+                        accountTarget.type === "doctor"
+                          ? "bg-blue-100 text-blue-700"
+                          : accountTarget.type === "receptionist"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-purple-100 text-purple-700"
+                      }`}
+                    >
                       {accountTarget.type}
                     </span>
                   </div>
@@ -730,7 +1088,7 @@ export function AdminDashboard() {
                   name="email"
                   type="email"
                   label="Email Address"
-                  defaultValue={accountTarget.data.email || ''}
+                  defaultValue={accountTarget.data.email || ""}
                   placeholder="email@clinic.com"
                   required
                 />
@@ -750,11 +1108,21 @@ export function AdminDashboard() {
                 />
 
                 <div className="flex gap-3 pt-1">
-                  <Button type="button" variant="outline" onClick={closeAccountModal} className="flex-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={closeAccountModal}
+                    className="flex-1"
+                  >
                     Cancel
                   </Button>
-                  <Button type="submit" isLoading={accountLoading} className="flex-1" icon={Key}>
-                    {accountLoading ? 'Creating Account...' : 'Create Account'}
+                  <Button
+                    type="submit"
+                    isLoading={accountLoading}
+                    className="flex-1"
+                    icon={Key}
+                  >
+                    {accountLoading ? "Creating Account..." : "Create Account"}
                   </Button>
                 </div>
               </form>
@@ -766,9 +1134,12 @@ export function AdminDashboard() {
       {/* Delete Confirmation */}
       <ConfirmDialog
         isOpen={showConfirmDialog}
-        onClose={() => { setShowConfirmDialog(false); setDeleteTarget(null); }}
+        onClose={() => {
+          setShowConfirmDialog(false);
+          setDeleteTarget(null);
+        }}
         onConfirm={handleDelete}
-        title={`Delete ${deleteTarget?.type === 'doctor' ? 'Doctor' : deleteTarget?.type === 'patient' ? 'Patient' : 'Receptionist'}?`}
+        title={`Delete ${deleteTarget?.type === "doctor" ? "Doctor" : deleteTarget?.type === "patient" ? "Patient" : "Receptionist"}?`}
         message={`"${deleteTarget?.data?.name}" ko permanently delete karna chahte hain?`}
         confirmLabel="Haan, Delete Karo"
         cancelLabel="Cancel"
@@ -784,7 +1155,9 @@ function DashboardOverview({ stats, loading, onNavigate }) {
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <LoadingSkeleton key={i} lines={3} />)}
+          {[...Array(4)].map((_, i) => (
+            <LoadingSkeleton key={i} lines={3} />
+          ))}
         </div>
       </div>
     );
@@ -793,49 +1166,95 @@ function DashboardOverview({ stats, loading, onNavigate }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Doctors" value={stats.totalDoctors} change="Active staff" trend="up" icon={Stethoscope} color="blue" />
-        <StatCard title="Total Patients" value={stats.totalPatients} change="Registered" trend="up" icon={Users} color="green" />
-        <StatCard title="Total Revenue" value={`$${stats.totalRevenue.toLocaleString()}`} change="This month" trend="up" icon={DollarSign} color="purple" />
-        <StatCard title="Staff Members" value={stats.totalReceptionists} change="Front desk" trend="stable" icon={UserCog} color="orange" />
+        <StatCard
+          title="Total Doctors"
+          value={stats.totalDoctors}
+          change="Active staff"
+          trend="up"
+          icon={Stethoscope}
+          color="blue"
+        />
+        <StatCard
+          title="Total Patients"
+          value={stats.totalPatients}
+          change="Registered"
+          trend="up"
+          icon={Users}
+          color="green"
+        />
+        <StatCard
+          title="Total Revenue"
+          value={`$${stats.totalRevenue.toLocaleString()}`}
+          change="This month"
+          trend="up"
+          icon={DollarSign}
+          color="purple"
+        />
+        <StatCard
+          title="Staff Members"
+          value={stats.totalReceptionists}
+          change="Front desk"
+          trend="stable"
+          icon={UserCog}
+          color="orange"
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card clickable onClick={() => onNavigate('doctors')} className="hover:shadow-lg transition-all">
+        <Card
+          clickable
+          onClick={() => onNavigate("doctors")}
+          className="hover:shadow-lg transition-all"
+        >
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <div className="p-4 bg-blue-100 rounded-xl">
                 <Stethoscope className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalDoctors}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalDoctors}
+                </p>
                 <p className="text-sm text-gray-500">Manage Doctors</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card clickable onClick={() => onNavigate('receptionists')} className="hover:shadow-lg transition-all">
+        <Card
+          clickable
+          onClick={() => onNavigate("receptionists")}
+          className="hover:shadow-lg transition-all"
+        >
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <div className="p-4 bg-green-100 rounded-xl">
                 <UserCog className="w-8 h-8 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalReceptionists}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalReceptionists}
+                </p>
                 <p className="text-sm text-gray-500">Manage Receptionists</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card clickable onClick={() => onNavigate('patients')} className="hover:shadow-lg transition-all">
+        <Card
+          clickable
+          onClick={() => onNavigate("patients")}
+          className="hover:shadow-lg transition-all"
+        >
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               <div className="p-4 bg-purple-100 rounded-xl">
                 <Users className="w-8 h-8 text-purple-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalPatients}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalPatients}
+                </p>
                 <p className="text-sm text-gray-500">Manage Patients</p>
               </div>
             </div>
@@ -847,29 +1266,60 @@ function DashboardOverview({ stats, loading, onNavigate }) {
 }
 
 // Doctor Management
-function DoctorManagement({ doctors, onAdd, onEdit, onDelete, onCreateAccount }) {
+function DoctorManagement({
+  doctors,
+  onAdd,
+  onEdit,
+  onDelete,
+  onCreateAccount,
+}) {
   const columns = [
     {
-      key: 'name',
-      header: 'Doctor',
+      key: "name",
+      header: "Doctor",
       render: (value, row) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-            <span className="text-blue-600 font-semibold">{row.name?.charAt(0)}</span>
+            <span className="text-blue-600 font-semibold">
+              {row.name?.charAt(0)}
+            </span>
           </div>
           <div>
             <p className="font-medium text-gray-900">{row.name}</p>
             <p className="text-xs text-gray-500">{row.email}</p>
           </div>
         </div>
-      )
+      ),
     },
-    { key: 'gender', header: 'Gender', render: (v) => v ? (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === 'Male' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'}`}>{v}</span>
-    ) : <span className="text-gray-400 text-xs">-</span> },
-    { key: 'specialty', header: 'Specialty', render: (v) => v || '-' },
-    { key: 'phone', header: 'Phone', render: (v) => v || '-' },
-    { key: 'status', header: 'Status', render: (value) => <StatusBadge variant={value === 'active' ? 'success' : 'default'} size="sm" dot>{value || 'active'}</StatusBadge> },
+    {
+      key: "gender",
+      header: "Gender",
+      render: (v) =>
+        v ? (
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === "Male" ? "bg-blue-50 text-blue-700" : "bg-pink-50 text-pink-700"}`}
+          >
+            {v}
+          </span>
+        ) : (
+          <span className="text-gray-400 text-xs">-</span>
+        ),
+    },
+    { key: "specialty", header: "Specialty", render: (v) => v || "-" },
+    { key: "phone", header: "Phone", render: (v) => v || "-" },
+    {
+      key: "status",
+      header: "Status",
+      render: (value) => (
+        <StatusBadge
+          variant={value === "active" ? "success" : "default"}
+          size="sm"
+          dot
+        >
+          {value || "active"}
+        </StatusBadge>
+      ),
+    },
   ];
 
   return (
@@ -877,14 +1327,22 @@ function DoctorManagement({ doctors, onAdd, onEdit, onDelete, onCreateAccount })
       <PageHeader
         title="Manage Doctors"
         subtitle="Add and remove medical staff"
-        actions={<Button icon={Plus} onClick={onAdd}>Add Doctor</Button>}
+        actions={
+          <Button icon={Plus} onClick={onAdd}>
+            Add Doctor
+          </Button>
+        }
       />
       {doctors.length === 0 ? (
         <EmptyState
           icon={Stethoscope}
           title="No doctors yet"
           description="Add your first doctor to get started"
-          action={<Button icon={Plus} onClick={onAdd}>Add Doctor</Button>}
+          action={
+            <Button icon={Plus} onClick={onAdd}>
+              Add Doctor
+            </Button>
+          }
         />
       ) : (
         <DataTable
@@ -896,15 +1354,27 @@ function DoctorManagement({ doctors, onAdd, onEdit, onDelete, onCreateAccount })
             <div className="flex items-center gap-1">
               <button
                 onClick={() => onCreateAccount(row)}
-                className={`p-1.5 rounded-lg transition-colors ${row.hasAccount ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:text-green-600 hover:bg-green-50'}`}
-                title={row.hasAccount ? 'Account already exists' : 'Create Login Account'}
+                className={`p-1.5 rounded-lg transition-colors ${row.hasAccount ? "text-green-500 hover:bg-green-50" : "text-gray-400 hover:text-green-600 hover:bg-green-50"}`}
+                title={
+                  row.hasAccount
+                    ? "Account already exists"
+                    : "Create Login Account"
+                }
               >
                 <Key className="w-4 h-4" />
               </button>
-              <button onClick={() => onEdit(row)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+              <button
+                onClick={() => onEdit(row)}
+                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Edit"
+              >
                 <Edit className="w-4 h-4" />
               </button>
-              <button onClick={() => onDelete(row)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+              <button
+                onClick={() => onDelete(row)}
+                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Delete"
+              >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
@@ -916,28 +1386,59 @@ function DoctorManagement({ doctors, onAdd, onEdit, onDelete, onCreateAccount })
 }
 
 // Receptionist Management
-function ReceptionistManagement({ receptionists, onAdd, onEdit, onDelete, onCreateAccount }) {
+function ReceptionistManagement({
+  receptionists,
+  onAdd,
+  onEdit,
+  onDelete,
+  onCreateAccount,
+}) {
   const columns = [
     {
-      key: 'name',
-      header: 'Name',
+      key: "name",
+      header: "Name",
       render: (value, row) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-            <span className="text-green-600 font-semibold">{row.name?.charAt(0)}</span>
+            <span className="text-green-600 font-semibold">
+              {row.name?.charAt(0)}
+            </span>
           </div>
           <div>
             <p className="font-medium text-gray-900">{row.name}</p>
             <p className="text-xs text-gray-500">{row.email}</p>
           </div>
         </div>
-      )
+      ),
     },
-    { key: 'gender', header: 'Gender', render: (v) => v ? (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === 'Male' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'}`}>{v}</span>
-    ) : <span className="text-gray-400 text-xs">-</span> },
-    { key: 'phone', header: 'Phone', render: (v) => v || '-' },
-    { key: 'status', header: 'Status', render: (value) => <StatusBadge variant={value === 'active' ? 'success' : 'default'} size="sm" dot>{value || 'active'}</StatusBadge> },
+    {
+      key: "gender",
+      header: "Gender",
+      render: (v) =>
+        v ? (
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === "Male" ? "bg-blue-50 text-blue-700" : "bg-pink-50 text-pink-700"}`}
+          >
+            {v}
+          </span>
+        ) : (
+          <span className="text-gray-400 text-xs">-</span>
+        ),
+    },
+    { key: "phone", header: "Phone", render: (v) => v || "-" },
+    {
+      key: "status",
+      header: "Status",
+      render: (value) => (
+        <StatusBadge
+          variant={value === "active" ? "success" : "default"}
+          size="sm"
+          dot
+        >
+          {value || "active"}
+        </StatusBadge>
+      ),
+    },
   ];
 
   return (
@@ -945,14 +1446,22 @@ function ReceptionistManagement({ receptionists, onAdd, onEdit, onDelete, onCrea
       <PageHeader
         title="Manage Receptionists"
         subtitle="Manage front desk staff"
-        actions={<Button icon={Plus} onClick={onAdd}>Add Receptionist</Button>}
+        actions={
+          <Button icon={Plus} onClick={onAdd}>
+            Add Receptionist
+          </Button>
+        }
       />
       {receptionists.length === 0 ? (
         <EmptyState
           icon={UserCog}
           title="No receptionists yet"
           description="Add your first receptionist"
-          action={<Button icon={Plus} onClick={onAdd}>Add Receptionist</Button>}
+          action={
+            <Button icon={Plus} onClick={onAdd}>
+              Add Receptionist
+            </Button>
+          }
         />
       ) : (
         <DataTable
@@ -964,15 +1473,27 @@ function ReceptionistManagement({ receptionists, onAdd, onEdit, onDelete, onCrea
             <div className="flex items-center gap-1">
               <button
                 onClick={() => onCreateAccount(row)}
-                className={`p-1.5 rounded-lg transition-colors ${row.hasAccount ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:text-green-600 hover:bg-green-50'}`}
-                title={row.hasAccount ? 'Account already exists' : 'Create Login Account'}
+                className={`p-1.5 rounded-lg transition-colors ${row.hasAccount ? "text-green-500 hover:bg-green-50" : "text-gray-400 hover:text-green-600 hover:bg-green-50"}`}
+                title={
+                  row.hasAccount
+                    ? "Account already exists"
+                    : "Create Login Account"
+                }
               >
                 <Key className="w-4 h-4" />
               </button>
-              <button onClick={() => onEdit(row)} className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+              <button
+                onClick={() => onEdit(row)}
+                className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                title="Edit"
+              >
                 <Edit className="w-4 h-4" />
               </button>
-              <button onClick={() => onDelete(row)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+              <button
+                onClick={() => onDelete(row)}
+                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Delete"
+              >
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
@@ -984,48 +1505,85 @@ function ReceptionistManagement({ receptionists, onAdd, onEdit, onDelete, onCrea
 }
 
 // Patient Management
-function PatientManagement({ patients, onAdd, onEdit, onDelete, onCreateAccount }) {
+function PatientManagement({
+  patients,
+  onAdd,
+  onEdit,
+  onDelete,
+  onCreateAccount,
+}) {
   const statusVariant = (status) => {
-    if (status === 'active') return 'success';
-    if (status === 'critical') return 'danger';
-    if (status === 'recovered') return 'info';
-    return 'default';
+    if (status === "active") return "success";
+    if (status === "critical") return "danger";
+    if (status === "recovered") return "info";
+    return "default";
   };
 
   const columns = [
     {
-      key: 'name',
-      header: 'Patient',
+      key: "name",
+      header: "Patient",
       render: (value, row) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-            <span className="text-purple-600 font-semibold">{row.name?.charAt(0)}</span>
+            <span className="text-purple-600 font-semibold">
+              {row.name?.charAt(0)}
+            </span>
           </div>
           <div>
             <p className="font-medium text-gray-900">{row.name}</p>
             <p className="text-xs text-gray-500">{row.email}</p>
           </div>
         </div>
-      )
+      ),
     },
-    { key: 'gender', header: 'Gender', render: (v) => v ? (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === 'Male' ? 'bg-blue-50 text-blue-700' : 'bg-pink-50 text-pink-700'}`}>{v}</span>
-    ) : <span className="text-gray-400 text-xs">-</span> },
-    { key: 'phone', header: 'Phone', render: (v) => v || '-' },
-    { key: 'bloodType', header: 'Blood Type', render: (v) => v ? (
-      <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded-full text-xs font-bold">{v}</span>
-    ) : <span className="text-gray-400 text-xs">-</span> },
-    { key: 'disease', header: 'Disease', render: (v) => v ? (
-      <span className="px-2 py-0.5 bg-orange-50 text-orange-700 rounded-full text-xs font-medium">{v}</span>
-    ) : <span className="text-gray-400 text-xs">Not set</span> },
     {
-      key: 'status',
-      header: 'Status',
+      key: "gender",
+      header: "Gender",
+      render: (v) =>
+        v ? (
+          <span
+            className={`px-2 py-0.5 rounded-full text-xs font-medium ${v === "Male" ? "bg-blue-50 text-blue-700" : "bg-pink-50 text-pink-700"}`}
+          >
+            {v}
+          </span>
+        ) : (
+          <span className="text-gray-400 text-xs">-</span>
+        ),
+    },
+    { key: "phone", header: "Phone", render: (v) => v || "-" },
+    {
+      key: "bloodType",
+      header: "Blood Type",
+      render: (v) =>
+        v ? (
+          <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded-full text-xs font-bold">
+            {v}
+          </span>
+        ) : (
+          <span className="text-gray-400 text-xs">-</span>
+        ),
+    },
+    {
+      key: "disease",
+      header: "Disease",
+      render: (v) =>
+        v ? (
+          <span className="px-2 py-0.5 bg-orange-50 text-orange-700 rounded-full text-xs font-medium">
+            {v}
+          </span>
+        ) : (
+          <span className="text-gray-400 text-xs">Not set</span>
+        ),
+    },
+    {
+      key: "status",
+      header: "Status",
       render: (value) => (
         <StatusBadge variant={statusVariant(value)} size="sm" dot>
-          {value || 'active'}
+          {value || "active"}
         </StatusBadge>
-      )
+      ),
     },
   ];
 
@@ -1034,14 +1592,22 @@ function PatientManagement({ patients, onAdd, onEdit, onDelete, onCreateAccount 
       <PageHeader
         title="Manage Patients"
         subtitle={`${patients.length} patients registered`}
-        actions={<Button icon={Plus} onClick={onAdd}>Add Patient</Button>}
+        actions={
+          <Button icon={Plus} onClick={onAdd}>
+            Add Patient
+          </Button>
+        }
       />
       {patients.length === 0 ? (
         <EmptyState
           icon={Users}
           title="No patients yet"
           description="Patients who sign up will appear here"
-          action={<Button icon={Plus} onClick={onAdd}>Add Patient</Button>}
+          action={
+            <Button icon={Plus} onClick={onAdd}>
+              Add Patient
+            </Button>
+          }
         />
       ) : (
         <DataTable
@@ -1053,8 +1619,12 @@ function PatientManagement({ patients, onAdd, onEdit, onDelete, onCreateAccount 
             <div className="flex items-center gap-1">
               <button
                 onClick={() => onCreateAccount(row)}
-                className={`p-1.5 rounded-lg transition-colors ${row.hasAccount ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:text-green-600 hover:bg-green-50'}`}
-                title={row.hasAccount ? 'Account already exists' : 'Create Login Account'}
+                className={`p-1.5 rounded-lg transition-colors ${row.hasAccount ? "text-green-500 hover:bg-green-50" : "text-gray-400 hover:text-green-600 hover:bg-green-50"}`}
+                title={
+                  row.hasAccount
+                    ? "Account already exists"
+                    : "Create Login Account"
+                }
               >
                 <Key className="w-4 h-4" />
               </button>
@@ -1083,25 +1653,51 @@ function PatientManagement({ patients, onAdd, onEdit, onDelete, onCreateAccount 
 // ─── Analytics Section ────────────────────────────────────────────────────────
 function AnalyticsSection({ stats, doctors, patients, receptionists }) {
   const statusCounts = {
-    active: patients.filter(p => (p.status || 'active') === 'active').length,
-    critical: patients.filter(p => p.status === 'critical').length,
-    recovered: patients.filter(p => p.status === 'recovered').length,
-    inactive: patients.filter(p => p.status === 'inactive').length,
+    active: patients.filter((p) => (p.status || "active") === "active").length,
+    critical: patients.filter((p) => p.status === "critical").length,
+    recovered: patients.filter((p) => p.status === "recovered").length,
+    inactive: patients.filter((p) => p.status === "inactive").length,
   };
 
-  const bloodTypeCounts = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bt => ({
-    label: bt,
-    count: patients.filter(p => p.bloodType === bt).length,
-  })).filter(b => b.count > 0);
+  const bloodTypeCounts = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
+    .map((bt) => ({
+      label: bt,
+      count: patients.filter((p) => p.bloodType === bt).length,
+    }))
+    .filter((b) => b.count > 0);
 
-  const maxBlood = Math.max(...bloodTypeCounts.map(b => b.count), 1);
+  const maxBlood = Math.max(...bloodTypeCounts.map((b) => b.count), 1);
   const totalPatients = patients.length || 1;
 
   const statusConfig = [
-    { key: 'active', label: 'Active', color: 'bg-green-500', text: 'text-green-700', bg: 'bg-green-50' },
-    { key: 'critical', label: 'Critical', color: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50' },
-    { key: 'recovered', label: 'Recovered', color: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-50' },
-    { key: 'inactive', label: 'Inactive', color: 'bg-gray-400', text: 'text-gray-600', bg: 'bg-gray-50' },
+    {
+      key: "active",
+      label: "Active",
+      color: "bg-green-500",
+      text: "text-green-700",
+      bg: "bg-green-50",
+    },
+    {
+      key: "critical",
+      label: "Critical",
+      color: "bg-red-500",
+      text: "text-red-700",
+      bg: "bg-red-50",
+    },
+    {
+      key: "recovered",
+      label: "Recovered",
+      color: "bg-blue-500",
+      text: "text-blue-700",
+      bg: "bg-blue-50",
+    },
+    {
+      key: "inactive",
+      label: "Inactive",
+      color: "bg-gray-400",
+      text: "text-gray-600",
+      bg: "bg-gray-50",
+    },
   ];
 
   return (
@@ -1111,22 +1707,57 @@ function AnalyticsSection({ stats, doctors, patients, receptionists }) {
       {/* Top Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Doctors', value: stats.totalDoctors, icon: Stethoscope, color: 'blue' },
-          { label: 'Total Patients', value: stats.totalPatients, icon: Users, color: 'purple' },
-          { label: 'Staff Members', value: stats.totalReceptionists, icon: UserCog, color: 'green' },
-          { label: 'Est. Revenue', value: `$${stats.totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'orange' },
+          {
+            label: "Total Doctors",
+            value: stats.totalDoctors,
+            icon: Stethoscope,
+            color: "blue",
+          },
+          {
+            label: "Total Patients",
+            value: stats.totalPatients,
+            icon: Users,
+            color: "purple",
+          },
+          {
+            label: "Staff Members",
+            value: stats.totalReceptionists,
+            icon: UserCog,
+            color: "green",
+          },
+          {
+            label: "Est. Revenue",
+            value: `$${stats.totalRevenue.toLocaleString()}`,
+            icon: DollarSign,
+            color: "orange",
+          },
         ].map((item, i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-            <div className={`inline-flex p-2 rounded-lg mb-3 ${
-              item.color === 'blue' ? 'bg-blue-50' :
-              item.color === 'purple' ? 'bg-purple-50' :
-              item.color === 'green' ? 'bg-green-50' : 'bg-orange-50'
-            }`}>
-              <item.icon className={`w-5 h-5 ${
-                item.color === 'blue' ? 'text-blue-600' :
-                item.color === 'purple' ? 'text-purple-600' :
-                item.color === 'green' ? 'text-green-600' : 'text-orange-600'
-              }`} />
+          <div
+            key={i}
+            className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm"
+          >
+            <div
+              className={`inline-flex p-2 rounded-lg mb-3 ${
+                item.color === "blue"
+                  ? "bg-blue-50"
+                  : item.color === "purple"
+                    ? "bg-purple-50"
+                    : item.color === "green"
+                      ? "bg-green-50"
+                      : "bg-orange-50"
+              }`}
+            >
+              <item.icon
+                className={`w-5 h-5 ${
+                  item.color === "blue"
+                    ? "text-blue-600"
+                    : item.color === "purple"
+                      ? "text-purple-600"
+                      : item.color === "green"
+                        ? "text-green-600"
+                        : "text-orange-600"
+                }`}
+              />
             </div>
             <p className="text-2xl font-bold text-gray-900">{item.value}</p>
             <p className="text-sm text-gray-500 mt-0.5">{item.label}</p>
@@ -1139,7 +1770,9 @@ function AnalyticsSection({ stats, doctors, patients, receptionists }) {
         <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-5">
             <Activity className="w-5 h-5 text-blue-600" />
-            <h3 className="font-semibold text-gray-900">Patient Status Breakdown</h3>
+            <h3 className="font-semibold text-gray-900">
+              Patient Status Breakdown
+            </h3>
           </div>
           <div className="space-y-4">
             {statusConfig.map(({ key, label, color, text, bg }) => {
@@ -1148,8 +1781,17 @@ function AnalyticsSection({ stats, doctors, patients, receptionists }) {
               return (
                 <div key={key}>
                   <div className="flex justify-between items-center mb-1">
-                    <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${text} ${bg}`}>{label}</span>
-                    <span className="text-sm font-bold text-gray-700">{count} <span className="text-gray-400 font-normal">({pct}%)</span></span>
+                    <span
+                      className={`text-sm font-medium px-2 py-0.5 rounded-full ${text} ${bg}`}
+                    >
+                      {label}
+                    </span>
+                    <span className="text-sm font-bold text-gray-700">
+                      {count}{" "}
+                      <span className="text-gray-400 font-normal">
+                        ({pct}%)
+                      </span>
+                    </span>
                   </div>
                   <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
@@ -1167,7 +1809,9 @@ function AnalyticsSection({ stats, doctors, patients, receptionists }) {
         <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-5">
             <Heart className="w-5 h-5 text-red-500" />
-            <h3 className="font-semibold text-gray-900">Blood Type Distribution</h3>
+            <h3 className="font-semibold text-gray-900">
+              Blood Type Distribution
+            </h3>
           </div>
           {bloodTypeCounts.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-32 text-gray-400">
@@ -1177,13 +1821,20 @@ function AnalyticsSection({ stats, doctors, patients, receptionists }) {
           ) : (
             <div className="flex items-end gap-3 h-36">
               {bloodTypeCounts.map(({ label, count }) => (
-                <div key={label} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-xs font-bold text-gray-700">{count}</span>
+                <div
+                  key={label}
+                  className="flex-1 flex flex-col items-center gap-1"
+                >
+                  <span className="text-xs font-bold text-gray-700">
+                    {count}
+                  </span>
                   <div
                     className="w-full bg-red-400 rounded-t-md transition-all duration-500"
                     style={{ height: `${(count / maxBlood) * 96}px` }}
                   />
-                  <span className="text-xs font-semibold text-red-700">{label}</span>
+                  <span className="text-xs font-semibold text-red-700">
+                    {label}
+                  </span>
                 </div>
               ))}
             </div>
@@ -1199,16 +1850,41 @@ function AnalyticsSection({ stats, doctors, patients, receptionists }) {
         </div>
         <div className="grid grid-cols-3 gap-4 text-center">
           {[
-            { label: 'Doctors', value: stats.totalDoctors, color: 'text-blue-600', bar: 'bg-blue-500' },
-            { label: 'Receptionists', value: stats.totalReceptionists, color: 'text-green-600', bar: 'bg-green-500' },
-            { label: 'Patients', value: stats.totalPatients, color: 'text-purple-600', bar: 'bg-purple-500' },
+            {
+              label: "Doctors",
+              value: stats.totalDoctors,
+              color: "text-blue-600",
+              bar: "bg-blue-500",
+            },
+            {
+              label: "Receptionists",
+              value: stats.totalReceptionists,
+              color: "text-green-600",
+              bar: "bg-green-500",
+            },
+            {
+              label: "Patients",
+              value: stats.totalPatients,
+              color: "text-purple-600",
+              bar: "bg-purple-500",
+            },
           ].map((item, i) => {
-            const maxVal = Math.max(stats.totalDoctors, stats.totalReceptionists, stats.totalPatients, 1);
+            const maxVal = Math.max(
+              stats.totalDoctors,
+              stats.totalReceptionists,
+              stats.totalPatients,
+              1,
+            );
             return (
               <div key={i} className="flex flex-col items-center gap-2">
-                <span className={`text-3xl font-bold ${item.color}`}>{item.value}</span>
+                <span className={`text-3xl font-bold ${item.color}`}>
+                  {item.value}
+                </span>
                 <div className="w-full h-2 bg-gray-100 rounded-full">
-                  <div className={`h-full ${item.bar} rounded-full`} style={{ width: `${(item.value / maxVal) * 100}%` }} />
+                  <div
+                    className={`h-full ${item.bar} rounded-full`}
+                    style={{ width: `${(item.value / maxVal) * 100}%` }}
+                  />
                 </div>
                 <span className="text-sm text-gray-500">{item.label}</span>
               </div>
@@ -1222,17 +1898,47 @@ function AnalyticsSection({ stats, doctors, patients, receptionists }) {
 
 // ─── Reports Section ──────────────────────────────────────────────────────────
 function ReportsSection({ stats, doctors, patients, receptionists }) {
-  const today = new Date().toLocaleDateString('en-PK', { year: 'numeric', month: 'long', day: 'numeric' });
+  const today = new Date().toLocaleDateString("en-PK", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-  const criticalPatients = patients.filter(p => p.status === 'critical');
-  const recoveredPatients = patients.filter(p => p.status === 'recovered');
-  const activePatients = patients.filter(p => (p.status || 'active') === 'active');
+  const criticalPatients = patients.filter((p) => p.status === "critical");
+  const recoveredPatients = patients.filter((p) => p.status === "recovered");
+  const activePatients = patients.filter(
+    (p) => (p.status || "active") === "active",
+  );
 
   const summaryCards = [
-    { label: 'Total Staff', value: stats.totalDoctors + stats.totalReceptionists, icon: UserCog, color: 'blue', desc: `${stats.totalDoctors} doctors, ${stats.totalReceptionists} receptionists` },
-    { label: 'Active Patients', value: activePatients.length, icon: CheckCircle, color: 'green', desc: 'Currently under treatment' },
-    { label: 'Critical Cases', value: criticalPatients.length, icon: AlertTriangle, color: 'red', desc: 'Require immediate attention' },
-    { label: 'Recovered', value: recoveredPatients.length, icon: TrendingUp, color: 'purple', desc: 'Successfully treated' },
+    {
+      label: "Total Staff",
+      value: stats.totalDoctors + stats.totalReceptionists,
+      icon: UserCog,
+      color: "blue",
+      desc: `${stats.totalDoctors} doctors, ${stats.totalReceptionists} receptionists`,
+    },
+    {
+      label: "Active Patients",
+      value: activePatients.length,
+      icon: CheckCircle,
+      color: "green",
+      desc: "Currently under treatment",
+    },
+    {
+      label: "Critical Cases",
+      value: criticalPatients.length,
+      icon: AlertTriangle,
+      color: "red",
+      desc: "Require immediate attention",
+    },
+    {
+      label: "Recovered",
+      value: recoveredPatients.length,
+      icon: TrendingUp,
+      color: "purple",
+      desc: "Successfully treated",
+    },
   ];
 
   return (
@@ -1254,17 +1960,32 @@ function ReportsSection({ stats, doctors, patients, receptionists }) {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryCards.map((card, i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-            <div className={`inline-flex p-2 rounded-lg mb-3 ${
-              card.color === 'blue' ? 'bg-blue-50' :
-              card.color === 'green' ? 'bg-green-50' :
-              card.color === 'red' ? 'bg-red-50' : 'bg-purple-50'
-            }`}>
-              <card.icon className={`w-5 h-5 ${
-                card.color === 'blue' ? 'text-blue-600' :
-                card.color === 'green' ? 'text-green-600' :
-                card.color === 'red' ? 'text-red-600' : 'text-purple-600'
-              }`} />
+          <div
+            key={i}
+            className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm"
+          >
+            <div
+              className={`inline-flex p-2 rounded-lg mb-3 ${
+                card.color === "blue"
+                  ? "bg-blue-50"
+                  : card.color === "green"
+                    ? "bg-green-50"
+                    : card.color === "red"
+                      ? "bg-red-50"
+                      : "bg-purple-50"
+              }`}
+            >
+              <card.icon
+                className={`w-5 h-5 ${
+                  card.color === "blue"
+                    ? "text-blue-600"
+                    : card.color === "green"
+                      ? "text-green-600"
+                      : card.color === "red"
+                        ? "text-red-600"
+                        : "text-purple-600"
+                }`}
+              />
             </div>
             <p className="text-2xl font-bold text-gray-900">{card.value}</p>
             <p className="text-sm font-medium text-gray-700">{card.label}</p>
@@ -1278,34 +1999,65 @@ function ReportsSection({ stats, doctors, patients, receptionists }) {
         <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
           <Stethoscope className="w-4 h-4 text-blue-600" />
           <h3 className="font-semibold text-gray-900">Doctors Report</h3>
-          <span className="ml-auto text-xs text-gray-400">{doctors.length} total</span>
+          <span className="ml-auto text-xs text-gray-400">
+            {doctors.length} total
+          </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {['#', 'Name', 'Specialty', 'Email', 'Phone', 'Status'].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                ))}
+                {["#", "Name", "Specialty", "Email", "Phone", "Status"].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide"
+                    >
+                      {h}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {doctors.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-gray-400 text-sm">No doctors found</td></tr>
-              ) : doctors.map((d, i) => (
-                <tr key={d.id || i} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 text-gray-400">{i + 1}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{d.name}</td>
-                  <td className="px-4 py-3 text-gray-600">{d.specialty || '-'}</td>
-                  <td className="px-4 py-3 text-gray-500">{d.email || '-'}</td>
-                  <td className="px-4 py-3 text-gray-500">{d.phone || '-'}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${d.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                      {d.status || 'active'}
-                    </span>
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-4 py-6 text-center text-gray-400 text-sm"
+                  >
+                    No doctors found
                   </td>
                 </tr>
-              ))}
+              ) : (
+                doctors.map((d, i) => (
+                  <tr
+                    key={d.id || i}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-4 py-3 text-gray-400">{i + 1}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      {d.name}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {d.specialty || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {d.email || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {d.phone || "-"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${d.status === "active" ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600"}`}
+                      >
+                        {d.status || "active"}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -1316,30 +2068,49 @@ function ReportsSection({ stats, doctors, patients, receptionists }) {
         <div className="bg-white rounded-xl border border-red-100 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-red-100 flex items-center gap-2 bg-red-50">
             <AlertTriangle className="w-4 h-4 text-red-600" />
-            <h3 className="font-semibold text-red-700">Critical Patients — Immediate Attention Required</h3>
-            <span className="ml-auto text-xs text-red-500">{criticalPatients.length} patients</span>
+            <h3 className="font-semibold text-red-700">
+              Critical Patients — Immediate Attention Required
+            </h3>
+            <span className="ml-auto text-xs text-red-500">
+              {criticalPatients.length} patients
+            </span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  {['#', 'Patient', 'Disease', 'Blood Type', 'Phone'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                  ))}
+                  {["#", "Patient", "Disease", "Blood Type", "Phone"].map(
+                    (h) => (
+                      <th
+                        key={h}
+                        className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide"
+                      >
+                        {h}
+                      </th>
+                    ),
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {criticalPatients.map((p, i) => (
                   <tr key={p.id || i} className="hover:bg-red-50/30">
                     <td className="px-4 py-3 text-gray-400">{i + 1}</td>
-                    <td className="px-4 py-3 font-medium text-gray-900">{p.name}</td>
-                    <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 bg-orange-50 text-orange-700 rounded-full text-xs">{p.disease || '-'}</span>
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      {p.name}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded-full text-xs font-bold">{p.bloodType || '-'}</span>
+                      <span className="px-2 py-0.5 bg-orange-50 text-orange-700 rounded-full text-xs">
+                        {p.disease || "-"}
+                      </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{p.phone || '-'}</td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-0.5 bg-red-50 text-red-700 rounded-full text-xs font-bold">
+                        {p.bloodType || "-"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {p.phone || "-"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1356,11 +2127,15 @@ function ReportsSection({ stats, doctors, patients, receptionists }) {
         </div>
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center p-4 bg-green-50 rounded-xl">
-            <p className="text-2xl font-bold text-green-700">${stats.totalRevenue.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-green-700">
+              ${stats.totalRevenue.toLocaleString()}
+            </p>
             <p className="text-sm text-green-600 mt-1">Estimated Total</p>
           </div>
           <div className="text-center p-4 bg-blue-50 rounded-xl">
-            <p className="text-2xl font-bold text-blue-700">${(stats.totalRevenue / (new Date().getMonth() + 1)).toFixed(0)}</p>
+            <p className="text-2xl font-bold text-blue-700">
+              ${(stats.totalRevenue / (new Date().getMonth() + 1)).toFixed(0)}
+            </p>
             <p className="text-sm text-blue-600 mt-1">Monthly Average</p>
           </div>
           <div className="text-center p-4 bg-purple-50 rounded-xl">
@@ -1376,7 +2151,11 @@ function ReportsSection({ stats, doctors, patients, receptionists }) {
 // ─── Settings Section ─────────────────────────────────────────────────────────
 function SettingsSection() {
   const [saved, setSaved] = useState(false);
-  const [notifications, setNotifications] = useState({ email: true, sms: false, critical: true });
+  const [notifications, setNotifications] = useState({
+    email: true,
+    sms: false,
+    critical: true,
+  });
 
   function handleSave(e) {
     e.preventDefault();
@@ -1404,7 +2183,9 @@ function SettingsSection() {
         <form onSubmit={handleSave} className="p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Clinic Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Clinic Name
+              </label>
               <input
                 type="text"
                 defaultValue="ClinicPro Medical Center"
@@ -1412,7 +2193,9 @@ function SettingsSection() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Contact Email
+              </label>
               <input
                 type="email"
                 defaultValue="admin@clinicpro.com"
@@ -1420,7 +2203,9 @@ function SettingsSection() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Phone Number
+              </label>
               <input
                 type="tel"
                 defaultValue="+92 300 0000000"
@@ -1428,7 +2213,9 @@ function SettingsSection() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                City
+              </label>
               <input
                 type="text"
                 defaultValue="Karachi, Pakistan"
@@ -1437,7 +2224,9 @@ function SettingsSection() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Address</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Address
+            </label>
             <textarea
               rows={2}
               defaultValue="123 Medical Street, Gulshan-e-Iqbal, Karachi"
@@ -1445,7 +2234,10 @@ function SettingsSection() {
             />
           </div>
           <div className="flex justify-end">
-            <button type="submit" className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+            <button
+              type="submit"
+              className="px-5 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
               Save Changes
             </button>
           </div>
@@ -1460,9 +2252,21 @@ function SettingsSection() {
         </div>
         <div className="p-6 space-y-4">
           {[
-            { key: 'email', label: 'Email Notifications', desc: 'Receive updates via email for new appointments' },
-            { key: 'sms', label: 'SMS Notifications', desc: 'Get SMS alerts for critical patient updates' },
-            { key: 'critical', label: 'Critical Patient Alerts', desc: 'Instant alert when a patient is marked critical' },
+            {
+              key: "email",
+              label: "Email Notifications",
+              desc: "Receive updates via email for new appointments",
+            },
+            {
+              key: "sms",
+              label: "SMS Notifications",
+              desc: "Get SMS alerts for critical patient updates",
+            },
+            {
+              key: "critical",
+              label: "Critical Patient Alerts",
+              desc: "Instant alert when a patient is marked critical",
+            },
           ].map(({ key, label, desc }) => (
             <div key={key} className="flex items-center justify-between py-2">
               <div>
@@ -1470,10 +2274,14 @@ function SettingsSection() {
                 <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
               </div>
               <button
-                onClick={() => setNotifications(prev => ({ ...prev, [key]: !prev[key] }))}
-                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${notifications[key] ? 'bg-blue-600' : 'bg-gray-200'}`}
+                onClick={() =>
+                  setNotifications((prev) => ({ ...prev, [key]: !prev[key] }))
+                }
+                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${notifications[key] ? "bg-blue-600" : "bg-gray-200"}`}
               >
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${notifications[key] ? 'translate-x-5' : 'translate-x-0'}`} />
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${notifications[key] ? "translate-x-5" : "translate-x-0"}`}
+                />
               </button>
             </div>
           ))}
@@ -1488,20 +2296,44 @@ function SettingsSection() {
         </div>
         <div className="p-6 space-y-3">
           {[
-            { label: 'Change Password', desc: 'Update your admin account password', btn: 'Change', color: 'blue' },
-            { label: 'Two-Factor Authentication', desc: 'Add an extra layer of security to your account', btn: 'Enable', color: 'green' },
-            { label: 'Active Sessions', desc: 'View and manage all active login sessions', btn: 'View', color: 'gray' },
+            {
+              label: "Change Password",
+              desc: "Update your admin account password",
+              btn: "Change",
+              color: "blue",
+            },
+            {
+              label: "Two-Factor Authentication",
+              desc: "Add an extra layer of security to your account",
+              btn: "Enable",
+              color: "green",
+            },
+            {
+              label: "Active Sessions",
+              desc: "View and manage all active login sessions",
+              btn: "View",
+              color: "gray",
+            },
           ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+            <div
+              key={i}
+              className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
+            >
               <div>
-                <p className="text-sm font-medium text-gray-900">{item.label}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {item.label}
+                </p>
                 <p className="text-xs text-gray-500">{item.desc}</p>
               </div>
-              <button className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
-                item.color === 'blue' ? 'border-blue-200 text-blue-600 hover:bg-blue-50' :
-                item.color === 'green' ? 'border-green-200 text-green-600 hover:bg-green-50' :
-                'border-gray-200 text-gray-600 hover:bg-gray-100'
-              }`}>
+              <button
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                  item.color === "blue"
+                    ? "border-blue-200 text-blue-600 hover:bg-blue-50"
+                    : item.color === "green"
+                      ? "border-green-200 text-green-600 hover:bg-green-50"
+                      : "border-gray-200 text-gray-600 hover:bg-gray-100"
+                }`}
+              >
                 {item.btn}
               </button>
             </div>
@@ -1516,10 +2348,22 @@ function SettingsSection() {
           <h3 className="font-semibold text-gray-900">Appearance</h3>
         </div>
         <div className="p-6">
-          <p className="text-sm text-gray-600 mb-4">Choose accent color for the dashboard</p>
+          <p className="text-sm text-gray-600 mb-4">
+            Choose accent color for the dashboard
+          </p>
           <div className="flex gap-3">
-            {['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-orange-500', 'bg-red-500', 'bg-teal-500'].map((color, i) => (
-              <button key={i} className={`w-8 h-8 rounded-full ${color} ${i === 0 ? 'ring-2 ring-offset-2 ring-blue-500' : ''} hover:scale-110 transition-transform`} />
+            {[
+              "bg-blue-500",
+              "bg-purple-500",
+              "bg-green-500",
+              "bg-orange-500",
+              "bg-red-500",
+              "bg-teal-500",
+            ].map((color, i) => (
+              <button
+                key={i}
+                className={`w-8 h-8 rounded-full ${color} ${i === 0 ? "ring-2 ring-offset-2 ring-blue-500" : ""} hover:scale-110 transition-transform`}
+              />
             ))}
           </div>
         </div>
