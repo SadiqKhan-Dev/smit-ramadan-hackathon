@@ -6,12 +6,12 @@ import {
   onAuthStateChanged,
   updateProfile
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, getDocFromServer } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 
 const AuthContext = createContext(null);
 
-// localStorage helpers — role cached by uid, never cleared so login always works
+// ── localStorage helpers ──────────────────────────────────────────
 function saveRoleLocally(uid, role) {
   try { localStorage.setItem(`cp_role_${uid}`, role); } catch (_) {}
 }
@@ -19,11 +19,21 @@ function getRoleLocally(uid) {
   try { return localStorage.getItem(`cp_role_${uid}`); } catch (_) { return null; }
 }
 
-// Fetch role: Auth displayName → Firestore → localStorage
+// ── Self-heal: encode role in Auth displayName so future logins
+//    never need Firestore. Fire-and-forget.
+function healDisplayName(user, role) {
+  if (!user || !role) return;
+  // Only update if not already in role::name format
+  if (user.displayName?.startsWith(`${role}::`)) return;
+  const name = user.displayName?.includes('::')
+    ? user.displayName.split('::')[1]
+    : user.displayName || user.email?.split('@')[0] || role;
+  updateProfile(user, { displayName: `${role}::${name}` }).catch(() => {});
+}
+
+// ── Fetch role: Auth displayName → Firestore (with retry) → localStorage
 async function fetchRole(uid) {
-  // Priority 1: Extract role from Firebase Auth displayName
-  // Admin-created accounts store role as "role::name" (e.g. "doctor::Dr. Ahmed")
-  // This is 100% reliable since Auth always works when login succeeds
+  // Priority 1: Auth displayName "role::name" format (100% reliable, no Firestore)
   const authUser = auth.currentUser;
   if (authUser && authUser.uid === uid && authUser.displayName?.includes('::')) {
     const role = authUser.displayName.split('::')[0];
@@ -33,29 +43,43 @@ async function fetchRole(uid) {
     }
   }
 
-  // Priority 2: Firestore (with timeout)
-  try {
+  // Priority 2: Firestore — getDoc (uses cache if available, more reliable than getDocFromServer)
+  const firestoreRead = async () => {
     const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 5000)
+      setTimeout(() => reject(new Error('timeout')), 8000)
     );
-    const snap = await Promise.race([getDocFromServer(doc(db, 'users', uid)), timeout]);
-    if (snap.exists() && snap.data().role) {
-      saveRoleLocally(uid, snap.data().role);
+    const snap = await Promise.race([getDoc(doc(db, 'users', uid)), timeout]);
+    if (snap.exists && snap.exists() && snap.data().role) {
       return snap.data().role;
     }
+    return null;
+  };
+
+  try {
+    const role = await firestoreRead();
+    if (role) {
+      saveRoleLocally(uid, role);
+      // Self-heal: encode in displayName so next login skips Firestore
+      healDisplayName(authUser, role);
+      return role;
+    }
   } catch (err) {
-    console.warn('Firestore role fetch failed, using cache:', err.message);
-    // Try regular getDoc as last Firestore attempt
+    console.warn('Firestore read attempt 1 failed:', err.message);
+    // Retry once after 2 seconds
     try {
-      const snap = await getDoc(doc(db, 'users', uid));
-      if (snap.exists() && snap.data().role) {
-        saveRoleLocally(uid, snap.data().role);
-        return snap.data().role;
+      await new Promise(r => setTimeout(r, 2000));
+      const role = await firestoreRead();
+      if (role) {
+        saveRoleLocally(uid, role);
+        healDisplayName(authUser, role);
+        return role;
       }
-    } catch (_) {}
+    } catch (err2) {
+      console.warn('Firestore read attempt 2 failed:', err2.message);
+    }
   }
 
-  // Priority 3: localStorage cache
+  // Priority 3: localStorage cache (works after first successful login)
   return getRoleLocally(uid);
 }
 
@@ -64,23 +88,27 @@ export function AuthProvider({ children }) {
   const [userRole, setUserRole]       = useState(null);
   const [loading, setLoading]         = useState(true);
   const [error, setError]             = useState(null);
-  const pendingRoleRef                = useRef(null); // signup race-condition guard
+  const pendingRoleRef                = useRef(null);
 
-  /* ── SIGNUP ─────────────────────────────────────────────────────── */
+  /* ── SIGNUP ──────────────────────────────────────────────────── */
   async function signup({ email, password, name, role, specialty, phone }) {
     try {
       setError(null);
       pendingRoleRef.current = role;
 
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(user, { displayName: name });
-      await setDoc(doc(db, 'users', user.uid), {
+
+      // Store role in displayName → login never needs Firestore
+      await updateProfile(user, { displayName: `${role}::${name}` });
+
+      // Also save to Firestore (best-effort, not blocking login)
+      setDoc(doc(db, 'users', user.uid), {
         uid: user.uid, name, email, role,
         specialty: role === 'doctor' ? (specialty || null) : null,
         phone: phone || null,
         createdAt: new Date().toISOString(),
         status: 'active',
-      });
+      }).catch(err => console.warn('Firestore profile save failed:', err.message));
 
       saveRoleLocally(user.uid, role);
       setUserRole(role);
@@ -94,22 +122,15 @@ export function AuthProvider({ children }) {
     }
   }
 
-  /* ── LOGIN ───────────────────────────────────────────────────────── */
+  /* ── LOGIN ───────────────────────────────────────────────────── */
   async function login(email, password) {
     try {
       setError(null);
       const { user } = await signInWithEmailAndPassword(auth, email, password);
 
-      // Set role BEFORE navigate so DashboardRouter never has to wait
       let role = await fetchRole(user.uid);
-      
-      // If role found, update state
-      if (role) {
-        setUserRole(role);
-      }
+      if (role) setUserRole(role);
 
-      // Always return the role (even if from localStorage only)
-      // This ensures demo login works even if Firestore is slow/empty
       return { success: true, role: role || getRoleLocally(user.uid) };
     } catch (err) {
       const msg = getErrorMessage(err.code, err.message);
@@ -118,7 +139,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  /* ── LOGOUT ──────────────────────────────────────────────────────── */
+  /* ── LOGOUT ──────────────────────────────────────────────────── */
   async function logout() {
     try {
       await signOut(auth);
@@ -127,11 +148,9 @@ export function AuthProvider({ children }) {
     } catch (err) {
       return { success: false, error: 'Failed to logout' };
     }
-    // NOTE: localStorage is intentionally NOT cleared — the cached role is
-    // uid-scoped and lets the next login work even if Firestore is slow.
   }
 
-  /* ── AUTH STATE LISTENER ─────────────────────────────────────────── */
+  /* ── AUTH STATE LISTENER ─────────────────────────────────────── */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -139,14 +158,15 @@ export function AuthProvider({ children }) {
       if (user) {
         let role = await fetchRole(user.uid);
 
-        // Last resort: if Firestore AND localStorage both fail (brand-new signup),
-        // use the role we stored in the ref before createUserWithEmailAndPassword.
         if (!role) {
-          await new Promise(r => setTimeout(r, 1000));
+          // One extra retry for brand-new signups where Firestore may not be ready
+          await new Promise(r => setTimeout(r, 1500));
           role = await fetchRole(user.uid);
         }
 
-        setUserRole(role || pendingRoleRef.current || null);
+        const finalRole = role || pendingRoleRef.current || null;
+        if (finalRole) healDisplayName(user, finalRole);
+        setUserRole(finalRole);
         pendingRoleRef.current = null;
       } else {
         setUserRole(null);
